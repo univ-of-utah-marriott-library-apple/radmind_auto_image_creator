@@ -1,4 +1,6 @@
 Automated OS X Imaging
 ======================
 
-This package provides the means to automatically create and save OS X images.
+Automagically create images for OS X computers using Radmind.
+
+(Still very much a work in progress.)
