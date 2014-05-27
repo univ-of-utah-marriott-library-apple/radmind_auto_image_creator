@@ -56,8 +56,34 @@ def create(image, vol='Mac OS X', size='200g'):
     size  - the maximum size of the sparse image
     '''
 
-    subprocess.call(['hdiutil', 'create', '-size', str(size), '-type', 'SPARSE',
-                    '-ov', '-fs', 'HFS+', '-volname', str(vol), str(image)])
+    result = subprocess.call(['hdiutil', 'create', '-size', str(size), '-type',
+                              'SPARSE', '-ov', '-fs', 'HFS+J', '-volname',
+                              str(vol), str(image)])
+
+    if result != 0:
+        raise RuntimeError("The image was not created properly.")
+
+def convert(image, format='UDRO', outfile=''):
+    '''Converts an image to another format. Default is read-only.
+
+    image   - path of the image to be converted
+    format  - the desired format
+    outfile - the name of the output file (defaults to the input file basename)
+    '''
+
+    if not outfile:
+        outfile = os.path.splitext(os.path.abspath(image))[0]
+
+    formats = ['UDRW', 'UDRO', 'UDCO', 'UDZO', 'UDBZ', 'UFBI', 'UDTO', 'UDxx',
+               'UDSP', 'UDSB', 'Rdxx', 'DC42']
+    if format not in formats:
+        raise ValueError("Invalid format specified.")
+
+    result = subprocess.call(['hdiutil', 'convert', str(image), '-format',
+                              str(format), str(outfile)])
+
+    if result != 0:
+        raise RuntimeError("The image was not successfully converted.")
 
 def attach(image):
     '''Mounts an image and returns the disk identifier in /dev/diskNsX format.
@@ -79,12 +105,6 @@ def attach(image):
             raise RuntimeError("The disk did not mount properly.")
         else:
             return disk
-        # # Mount the image, and retain the outputted information.
-        # hdiutil = subprocess.check_output(['hdiutil', 'attach', '-plist', str(image)])
-        #
-        # # Get the mount point from the output:
-        # mount = re.findall('mount-point.*\n[^>]*>([^<]*)<', hdiutil, re.MULTILINE)[0]
-        # return mount
     else:
         raise ValueError("Invalid image file specified.")
 
@@ -116,7 +136,7 @@ def find_mount(disk):
     '''
 
     if not re.match('/dev/', str(disk)):
-        raise ValueError("Invalid disk specified; must be in /dev/diskN format.")
+        raise ValueError("Invalid disk given; must be in /dev/diskN format.")
     else:
         mount = subprocess.check_output(['mount']).split('\n')
         result = ''
