@@ -39,6 +39,7 @@ def parse(options):
     parser.add_argument('-n', '--no-log',
                         action='store_true')
     parser.add_argument('-l', '--log')
+    args = parser.parse_args()
 
     if args.help:
         usage(options)
