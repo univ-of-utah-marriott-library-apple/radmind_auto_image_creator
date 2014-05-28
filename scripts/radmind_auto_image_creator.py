@@ -21,22 +21,27 @@ def main():
     options['out_dir'] = config.globals['out_dir']
 
     for image in config.images:
-        # Create blank sparse image.
+        # Change directory to the temporary location.
         with ChDir(options['tmp_dir']):
-            automagic_imaging.images.create(image=image, vol=config.images[image]['volume'])
+            # Create the blank sparse image.
+            i = automagic_imaging.images.Image(create=True, name=image, volume=config.images[image]['volume'])
 
-            # Mount
+            # Mount sparse image.
+            i.mount()
 
-            # Radmind
+            with ChDir(i.mount_point):
+                # Radmind
 
-            # Bless
+                # Bless
 
             # Unmount
+            i.unmount()
 
             # Convert
+            i.convert()
 
-            # Remove tmp
-            os.remove('./tmp.sparseimage')
+            # Remove sparse image.
+            os.remove('./' + image + '.sparseimage')
 
             # Scan
 

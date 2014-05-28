@@ -7,7 +7,11 @@ class Image:
     relevant information.
     '''
 
-    def __init__(self, path):
+    def __init__(self, path='', create=False, name=None, volume=None):
+        if create:
+            if not name:
+                raise ValueError("Must specify 'name' to create image.")
+            path = create(name, volume)
         if not os.path.isfile(path):
             raise ValueError("Invalid path specified: '" + path + "'")
         self.path = os.path.abspath(str(path))
@@ -29,19 +33,23 @@ class Image:
     def mount(self):
         self.attach()
 
-    def unmount(self):
-        self.detach()
-
     def attach(self):
         if not self.mounted:
             self.disk_id = attach(self.path)
             self.mount_point = find_mount(self.disk_id)
             self.mounted = True
 
+    def unmount(self):
+        self.detach()
+
     def detach(self):
         if self.mounted:
             detach(self.disk_id)
             self.__revert()
+
+    def convert(self, outfile=''):
+        if not self.mounted:
+            convert(self.path, outfile=outfile)
 
     def __revert(self):
         self.mount_point = ''
@@ -56,12 +64,14 @@ def create(image, vol='Mac OS X', size='200g'):
     size  - the maximum size of the sparse image
     '''
 
-    result = subprocess.call(['hdiutil', 'create', '-size', str(size), '-type',
-                              'SPARSE', '-ov', '-fs', 'HFS+J', '-volname',
-                              str(vol), str(image)])
+    result = subprocess.check_output(['hdiutil', 'create', '-size', str(size),
+                                      '-type', 'SPARSE', '-ov', '-fs', 'HFS+J',
+                                      '-volname', str(vol), str(image)])
 
-    if result != 0:
+    if not result.startswith('created: '):
         raise RuntimeError("The image was not created properly.")
+
+    return result.strip('\n').split(': ')[1]
 
 def convert(image, format='UDRO', outfile=''):
     '''Converts an image to another format. Default is read-only.
