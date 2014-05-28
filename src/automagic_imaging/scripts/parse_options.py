@@ -28,7 +28,7 @@ Create bootable disk images from Radmind.
     sys.exit(0)
 
 def parse(options):
-    '''Parses the options given to ls_manager.py.
+    '''Parses the options.
     '''
 
     parser = argparse.ArgumentParser(add_help=False)
@@ -39,6 +39,7 @@ def parse(options):
     parser.add_argument('-n', '--no-log',
                         action='store_true')
     parser.add_argument('-l', '--log')
+    parser.add_argument('-c', '--config')
     args = parser.parse_args()
 
     if args.help:
@@ -48,3 +49,4 @@ def parse(options):
         sys.exit(0)
     options['log'] = not args.no_log
     options['log_dest'] = args.log
+    options['config'] = args.config

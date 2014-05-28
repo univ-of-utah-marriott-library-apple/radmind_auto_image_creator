@@ -17,6 +17,8 @@ class Configurator:
             raise ValueError("Invalid config file: must have a 'Global' section.")
 
         self.globals = {}
+        if not parser.has_option('Global', 'tmp_dir') or not parser.has_option('Global', 'out_dir'):
+            raise ValueError("Invalid config file: 'Global' section must have 'tmp_dir' and 'out_dir' options.")
         for option in parser.options('Global'):
             self.globals[option] = parser.get('Global', option)
 
