@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+import automagic_imaging
+import os
 import sys
-
-import automagic_imaging.scripts
 
 def set_globals():
     global options
@@ -20,6 +20,9 @@ def setup_logger():
 def main():
     set_globals()
     automagic_imaging.scripts.parse_options.parse(options)
+    if os.geteuid() != 0:
+        print("You must be root to execute this script!")
+        sys.exit(1)
     setup_logger()
 
 if __name__ == "__main__":

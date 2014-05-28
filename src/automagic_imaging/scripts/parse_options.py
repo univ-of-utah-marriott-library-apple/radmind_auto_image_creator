@@ -48,6 +48,3 @@ def parse(options):
         sys.exit(0)
     options['log'] = not args.no_log
     options['log_dest'] = args.log
-    if not args.action:
-        print "Error: You must specify an action!"
-        sys.exit(5)
