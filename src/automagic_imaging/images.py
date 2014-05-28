@@ -32,12 +32,6 @@ class Image:
     def unmount(self):
         self.detach()
 
-    def bless(self):
-        if self.mounted:
-            folder = os.path.join(self.mount_point, 'System/Library/CoreServices')
-            subprocess.call(['bless', '--folder', folder, '--file',
-                             os.path.join(folder, 'boot.efi')])
-
     def attach(self):
         if not self.mounted:
             self.disk_id = attach(self.path)
