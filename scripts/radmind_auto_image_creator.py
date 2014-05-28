@@ -4,6 +4,14 @@ import automagic_imaging
 import os
 import sys
 
+def main():
+    set_globals()
+    automagic_imaging.scripts.parse_options.parse(options)
+    if os.geteuid() != 0:
+        print("You must be root to execute this script!")
+        sys.exit(1)
+    setup_logger()
+
 def set_globals():
     global options
     options = {}
@@ -16,14 +24,6 @@ def setup_logger():
     logger = automagic_imaging.scripts.logger.logger(options['log'],
                                                      options['log_dest'],
                                                      options['name'])
-
-def main():
-    set_globals()
-    automagic_imaging.scripts.parse_options.parse(options)
-    if os.geteuid() != 0:
-        print("You must be root to execute this script!")
-        sys.exit(1)
-    setup_logger()
 
 if __name__ == "__main__":
     main()
