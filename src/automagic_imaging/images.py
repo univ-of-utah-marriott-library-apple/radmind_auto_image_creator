@@ -7,11 +7,11 @@ class Image:
     relevant information.
     '''
 
-    def __init__(self, path='', create=False, name=None, volume=None):
-        if create:
-            if not name:
-                raise ValueError("Must specify 'name' to create image.")
-            path = create(name, volume)
+    def __init__(self, path='', make=False, name=None, volume=None):
+        if make:
+            if not name or not volume:
+                raise ValueError("Must specify 'name' and 'volume' to create image.")
+            path = create(image=name, vol=volume)
         if not os.path.isfile(path):
             raise ValueError("Invalid path specified: '" + path + "'")
         self.path = os.path.abspath(str(path))
@@ -90,7 +90,7 @@ def convert(image, format='UDRO', outfile=''):
         raise ValueError("Invalid format specified.")
 
     result = subprocess.call(['hdiutil', 'convert', str(image), '-format',
-                              str(format), str(outfile)])
+                              str(format), '-o', str(outfile)])
 
     if result != 0:
         raise RuntimeError("The image was not successfully converted.")

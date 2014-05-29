@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import automagic_imaging
+import datetime
 import os
 import sys
 
@@ -15,6 +16,7 @@ def main():
     if not options['config']:
         options['config'] = '/etc/radmind_auto_image_creator/config.ini'
 
+    logger.info("Using config file '" + options['config'] + "'")
     config = automagic_imaging.configurator.Configurator(options['config'])
 
     options['tmp_dir'] = config.globals['tmp_dir']
@@ -24,21 +26,50 @@ def main():
         # Change directory to the temporary location.
         with ChDir(options['tmp_dir']):
             # Create the blank sparse image.
-            i = automagic_imaging.images.Image(create=True, name=image, volume=config.images[image]['volume'])
+            logger.info("Creating image '" + str(image) + "'...")
+            try:
+                i = automagic_imaging.images.Image(make=True, name=image, volume=config.images[image]['volume'])
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(10)
+            logger.info("Created successfully at '" + i.path + "'")
 
             # Mount sparse image.
-            i.mount()
+            try:
+                i.mount()
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(11)
+            logger.info("Mounted image at '" + i.mount_point + "'")
 
             with ChDir(i.mount_point):
+                pass
                 # Radmind
 
                 # Bless
 
             # Unmount
-            i.unmount()
+            try:
+                i.unmount()
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(12)
+            logger.info("Image unmounted.")
+
+            # Craft new file name in the form:
+            # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
+            date = datetime.datetime.now().strftime('%Y.%m.%d')
+            version = '10.9.2' # Hardcoding for testing; temporary
+            build = '13C64'    # Hardcoding for testing; temporary
+            convert_name = date + '_' + image.upper() + '_' + version + '_' + build
 
             # Convert
-            i.convert()
+            try:
+                i.convert(convert_name)
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(13)
+            logger.info("Converted to read-only at '" + "'")
 
             # Remove sparse image.
             os.remove('./' + image + '.sparseimage')

@@ -23,7 +23,8 @@ Create bootable disk images from Radmind.
     v : prints the version information
     n : prevents logs from being written to file and enables console output
 
-    l log : use 'log' as the logging output location\
+    l log    : use 'log' as the logging output location
+    c config : use 'config' as the configuration file\
 '''.format(options['name'])
     sys.exit(0)
 
