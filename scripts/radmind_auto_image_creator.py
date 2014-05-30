@@ -172,7 +172,7 @@ def with_config():
             # Craft new file name in the form:
             # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
             date = datetime.datetime.now().strftime('%Y.%m.%d')
-            convert_name = options['out_dir'] + '/' + date + '_' + image.upper() + '_' + version + '_' + build
+            convert_name = options['out_dir'] + '/' + date + '_' + image.upper() + '_' + version + '_' + build + '.dmg'
 
             # Convert
             logger.info("Converting image to read-only at '" + convert_name + "'")
