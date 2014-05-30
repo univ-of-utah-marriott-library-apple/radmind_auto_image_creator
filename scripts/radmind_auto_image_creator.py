@@ -3,6 +3,7 @@
 import automagic_imaging
 import datetime
 import os
+import subprocess
 import sys
 
 def main():
@@ -35,6 +36,11 @@ def with_config():
         options['tmp_dir'] = '/tmp'
     if not os.path.exists(options['out_dir']):
         options['out_dir'] = '/tmp'
+
+    if options['tmp_dir'].endswith('/'):
+        options['tmp_dir'] = options['tmp_dir'][:-1]
+    if options['out_dir'].endswith('/'):
+        options['out_dir'] = options['out_dir'][:-1]
 
     for image in config.images:
         logger.info("Processing image '" + str(image) + "'")
@@ -91,7 +97,7 @@ def with_config():
                     sys.exit(20)
                 logger.info("Completed ktcheck.")
                 # fsdiff
-                fsdiff_out = '/tmp/fsdiff_out.T'
+                fsdiff_out = options['tmp_dir'] + str(image) + '.T'
                 logger.info("Running fsdiff with output to '" + fsdiff_out + "'...")
                 try:
                     automagic_imaging.scripts.radmind.run_fsdiff(
