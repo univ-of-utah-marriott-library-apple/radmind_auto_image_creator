@@ -39,7 +39,7 @@ def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
     result = subprocess.call(ktcheck,
                              stderr=subprocess.STDOUT,
                              stdout=open(os.devnull, 'w'))
-    if result != 0:
+    if result > 1:
         raise RuntimeError("ktcheck did not complete successfully!")
 
 def run_fsdiff(command=defaults['comm'], outfile=None):
@@ -116,8 +116,14 @@ def run_post_maintenance():
 def touch(path):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-    try:
-        with open(path, 'a'):
+    if os.path.isdir(path):
+        try:
             os.utime(path, None)
-    except:
-        raise RuntimeError("Unable to touch file '" + path + "'")
+        except:
+            raise RuntimeError("Unable to touch directory '" + path + "'")
+    else:
+        try:
+            with open(path, 'a'):
+                os.utime(path, None)
+        except:
+            raise RuntimeError("Unable to touch file '" + path + "'")

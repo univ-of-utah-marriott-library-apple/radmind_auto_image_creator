@@ -23,7 +23,7 @@ class Configurator:
             'rserver'     # The local radmind server.
         ]
         for required in required_globals:
-            if not parser.has_option'Global', required):
+            if not parser.has_option('Global', required):
                 raise ValueError("Invalid config file: 'Global' section must have 'tmp_dir' and 'out_dir' options.")
         for option in parser.options('Global'):
             self.globals[option] = parser.get('Global', option)

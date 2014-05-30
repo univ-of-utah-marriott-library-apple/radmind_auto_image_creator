@@ -31,6 +31,11 @@ def with_config():
     if not options['rserver']:
         options['rserver'] = config.globals['rserver']
 
+    if not os.path.exists(options['tmp_dir']):
+        options['tmp_dir'] = '/tmp'
+    if not os.path.exists(options['out_dir']):
+        options['out_dir'] = '/tmp'
+
     for image in config.images:
         # Change directory to the temporary location.
         with ChDir(options['tmp_dir']):
