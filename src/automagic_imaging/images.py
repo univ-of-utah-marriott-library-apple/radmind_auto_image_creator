@@ -57,7 +57,7 @@ class Image:
 
     def convert(self, outfile=''):
         if not self.mounted:
-            convert(self.path, outfile=outfile)
+            self.path = convert(self.path, outfile=outfile)
 
     def scan(self):
         if not self.mounted:
@@ -112,6 +112,8 @@ def convert(image, format='UDRO', outfile=''):
 
     if result != 0:
         raise RuntimeError("The image was not successfully converted.")
+
+    return outfile
 
 def attach(image):
     '''Mounts an image and returns the disk identifier in /dev/diskNsX format.

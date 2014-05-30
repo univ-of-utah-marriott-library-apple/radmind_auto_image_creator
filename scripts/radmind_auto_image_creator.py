@@ -172,7 +172,7 @@ def with_config():
             # Craft new file name in the form:
             # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
             date = datetime.datetime.now().strftime('%Y.%m.%d')
-            convert_name = options['out_dir'] + date + '_' + image.upper() + '_' + version + '_' + build
+            convert_name = options['out_dir'] + '/' + date + '_' + image.upper() + '_' + version + '_' + build
 
             # Convert
             logger.info("Converting image to read-only at '" + convert_name + "'")
@@ -195,7 +195,7 @@ def with_config():
             # Scan
             logger.info("Scanning image for asr use...")
             try:
-                i.scan()
+                automagic_imaging.images.scan(i.path)
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(18)
