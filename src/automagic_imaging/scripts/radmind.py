@@ -8,19 +8,17 @@ defaults['comm'] = defaults['path'] + 'client/command.K'
 defaults['port'] = '6223' # For certs
 defaults['auth'] = '2'    # For certs
 defaults['fsdo'] = '/tmp/fsdiff_out.T'
-defaults['rsrv'] = 'radmind.example.com'
 
-def full(cert, path=defaults['path'], port=defaults['port'],
+def full(cert, rserver, path=defaults['path'], port=defaults['port'],
          auth=defaults['auth'], command=defaults['comm'],
-         fsdiff_out=defaults['fsdo'], rserver=defaults['rsrv']):
+         fsdiff_out=defaults['fsdo']):
     run_ktcheck(cert, path, port, auth, command, rserver)
     run_fsdiff(command, fsdiff_out)
     run_lapply(cert, fsdiff_out, path, port, auth, command, rserver)
     run_post_maintenance()
 
-def run_ktcheck(cert, path=defaults['path'], port=defaults['port'],
-            auth=defaults['auth'], command=defaults['comm'],
-            rserver=defaults['rsrv']):
+def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
+            auth=defaults['auth'], command=defaults['comm']):
     if not os.path.exists(command):
         touch(command)
     ktcheck = [
@@ -54,9 +52,8 @@ def run_fsdiff(command=defaults['comm'], outfile=None):
         fsdiff.append(outfile)
     return subprocess.check_output(fsdiff)
 
-def run_lapply(cert, infile, path=defaults['path'], port=defaults['port'],
-               auth=defaults['auth'], command=defaults['comm'],
-               rserver=defaults['rsrv']):
+def run_lapply(cert, rserver, infile, path=defaults['path'], port=defaults['port'],
+               auth=defaults['auth'], command=defaults['comm']):
     lapply = [
         '/usr/local/bin/lapply',
         '-c', 'sha1',

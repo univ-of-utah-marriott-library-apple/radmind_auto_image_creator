@@ -13,14 +13,23 @@ def main():
         sys.exit(1)
     setup_logger()
 
+    # Eventually make it able to run one image at a time manually.
+    # For now, always use a config file.
     if not options['config']:
         options['config'] = '/etc/radmind_auto_image_creator/config.ini'
 
+    with_config()
+
+def with_config():
     logger.info("Using config file '" + options['config'] + "'")
     config = automagic_imaging.configurator.Configurator(options['config'])
 
-    options['tmp_dir'] = config.globals['tmp_dir']
-    options['out_dir'] = config.globals['out_dir']
+    if not options['tmp_dir']:
+        options['tmp_dir'] = config.globals['tmp_dir']
+    if not options['out_dir']:
+        options['out_dir'] = config.globals['out_dir']
+    if not options['rserver']:
+        options['rserver'] = config.globals['rserver']
 
     for image in config.images:
         # Change directory to the temporary location.
