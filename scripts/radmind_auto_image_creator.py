@@ -195,7 +195,7 @@ def with_config():
             # Scan
             logger.info("Scanning image for asr use...")
             try:
-                automagic_imaging.images.scan(i.path)
+                automagic_imaging.images.scan(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(18)

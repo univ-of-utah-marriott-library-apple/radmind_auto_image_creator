@@ -15,7 +15,7 @@ setup(
                  'automagic_imaging.scripts': 'src/automagic_imaging/scripts'},
     scripts=['scripts/radmind_auto_image_creator.py'],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 5 - Stable',
         'Environment :: Console',
         'Environment :: MacOS X',
         'Intended Audience :: Information Technology',
