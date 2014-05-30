@@ -230,7 +230,8 @@ def bless(volume, label=None):
         '--file', str(volume) + 'System/Library/CoreServices/boot.efi'
     ]
     if label:
-        bless.append('--label', str(label))
+        bless.append('--label')
+        bless.append(str(label))
 
     result = subprocess.call(bless,
                              stderr=subprocess.STDOUT,
