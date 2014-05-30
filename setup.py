@@ -1,8 +1,9 @@
 from distutils.core import setup
+from src import automagic_imaging
 
 setup(
     name='Automagic Imaging',
-    version='0.3',
+    version=automagic_imaging.__version__,
     url='https://github.com/univ-of-utah-marriott-library-apple/automated_osx_imaging',
     author='Pierce Darragh, Marriott Library IT Services',
     author_email='mlib-its-mac-github@lists.utah.edu',

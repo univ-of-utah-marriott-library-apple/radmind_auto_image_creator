@@ -12,9 +12,9 @@ defaults['fsdo'] = '/tmp/fsdiff_out.T'
 def full(cert, rserver, path=defaults['path'], port=defaults['port'],
          auth=defaults['auth'], command=defaults['comm'],
          fsdiff_out=defaults['fsdo']):
-    run_ktcheck(cert, path, port, auth, command, rserver)
+    run_ktcheck(cert, rserver, path, port, auth, command)
     run_fsdiff(command, fsdiff_out)
-    run_lapply(cert, fsdiff_out, path, port, auth, command, rserver)
+    run_lapply(cert, rserver, fsdiff_out, path, port, auth, command)
     run_post_maintenance()
 
 def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
@@ -36,7 +36,11 @@ def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
         '-y', cert,
         '-z', cert
     ]
-    return subprocess.check_output(ktcheck)
+    result = subprocess.call(ktcheck,
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
+    if result != 0:
+        raise RuntimeError("ktcheck did not complete successfully!")
 
 def run_fsdiff(command=defaults['comm'], outfile=None):
     fsdiff = [
@@ -50,7 +54,12 @@ def run_fsdiff(command=defaults['comm'], outfile=None):
     if outfile:
         fsdiff.append('-o')
         fsdiff.append(outfile)
-    return subprocess.check_output(fsdiff)
+    fsdiff.append('.')
+    result = subprocess.call(fsdiff,
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
+    if result != 0:
+        raise RuntimeError("fsdiff did not complete successfully!")
 
 def run_lapply(cert, rserver, infile, path=defaults['path'], port=defaults['port'],
                auth=defaults['auth'], command=defaults['comm']):
@@ -69,7 +78,11 @@ def run_lapply(cert, rserver, infile, path=defaults['path'], port=defaults['port
         '-z', cert,
         infile
     ]
-    return subprocess.check_output(lapply)
+    result = subprocess.call(lapply,
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
+    if result != 0:
+        raise RuntimeError("lapply did not complete successfully!")
 
 def run_post_maintenance():
     # We use a system called Xhooks to manage our post-maintenance routines.
@@ -86,16 +99,25 @@ def run_post_maintenance():
     for file in remove_these:
         if os.path.exists(file):
             os.remove(file)
-    subprocess.check_output(['./Library/Xhooks/Modules/xhooks/bin/radmind_xhooks_conf.pl'],
-                            stderr=subprocess.STDOUT)
+    result = subprocess.call(['./Library/Xhooks/Modules/xhooks/bin/radmind_xhooks_conf.pl'],
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
+    if result != 0:
+        raise RuntimeError("./Library/Xhooks/Modules/xhooks/bin/radmind_xhooks_conf.pl was unsuccesful.")
     touch('./Library/Xhooks/Preferences/triggerfiles/logout_hook_finished')
     touch('./System/Library/Extensions')
-    subprocess.check_output(['./usr/bin/update_dyld_shared_cache', '-root', '.',
-                             '-force', '-universal_boot'],
-                            stderr=subprocess.STDOUT)
+    result = subprocess.call(['./usr/bin/update_dyld_shared_cache',
+                              '-root', '.', '-force', '-universal_boot'],
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
+    if result != 0:
+        raise RuntimeError("./usr/bin/update_dyld_shared_cache was unsuccesful.")
 
 def touch(path):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
-    with open(path, 'a'):
-        os.utime(path, None)
+    try:
+        with open(path, 'a'):
+            os.utime(path, None)
+    except:
+        raise RuntimeError("Unable to touch file '" + path + "'")

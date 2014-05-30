@@ -51,25 +51,70 @@ def with_config():
                 sys.exit(11)
             logger.info("Mounted image at '" + i.mount_point + "'")
 
-            with ChDir(i.mount_point):
-                pass
-                # Radmind
+            # Enable ownership
+            try:
+                i.enable_ownership()
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(12)
+            logger.info("Image ownership enabled.")
 
-                # Bless
+            # Clean volume
+            try:
+                i.clean()
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(13)
+            logger.info("Volume cleaned successfully.")
+
+            with ChDir(i.mount_point):
+                # Radmind
+                try:
+                    automagic_imaging.scripts.radmind.full(
+                        cert=config.images[image]['cert'],
+                        rserver=options['rserver']
+                    )
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    sys.exit(20)
+
+                # Get the system's OS version and build version.
+                # (This is the file used by `/usr/bin/sw_vers`)
+                vers = [
+                    'defaults',
+                    'read',
+                    os.path.abspath('./System/Library/CoreServices/SystemVersion'),
+                    'ProductVersion'
+                ]
+                build = [
+                    'defaults',
+                    'read',
+                    os.path.abspath('./System/Library/CoreServices/SystemVersion'),
+                    'ProductBuildVersion'
+                ]
+                version = subprocess.check_output(vers).strip('\n')
+                build = subprocess.check_output(build).strip('\n')
+
+            # Bless
+            bless_label = image + ' ' + version
+            try:
+                i.bless(bless_label)
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(14)
+            logger.info("Volume blessed successfully.")
 
             # Unmount
             try:
                 i.unmount()
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(12)
+                sys.exit(15)
             logger.info("Image unmounted.")
 
             # Craft new file name in the form:
             # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
             date = datetime.datetime.now().strftime('%Y.%m.%d')
-            version = '10.9.2' # Hardcoding for testing; temporary
-            build = '13C64'    # Hardcoding for testing; temporary
             convert_name = date + '_' + image.upper() + '_' + version + '_' + build
 
             # Convert
@@ -77,20 +122,26 @@ def with_config():
                 i.convert(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(13)
+                sys.exit(16)
             logger.info("Converted to read-only at '" + "'")
 
             # Remove sparse image.
             os.remove('./' + image + '.sparseimage')
 
             # Scan
+            try:
+                i.scan()
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(17)
+            logger.info("Image successfully scanned.")
 
 def set_globals():
     global options
     options = {}
     options['long_name'] = "Radmind Auto Image Creator"
     options['name'] = '_'.join(options['long_name'].lower().split())
-    options['version'] = '0.2.2'
+    options['version'] = automagic_imaging.__version__
 
 def setup_logger():
     global logger

@@ -47,9 +47,25 @@ class Image:
             detach(self.disk_id)
             self.__revert()
 
+    def enable_ownership(self):
+        if self.mounted:
+            enable_ownership(self.disk_id)
+
+    def clean(self):
+        if self.mounted:
+            clean(self.mount_point)
+
     def convert(self, outfile=''):
         if not self.mounted:
             convert(self.path, outfile=outfile)
+
+    def scan(self):
+        if not self.mounted:
+            scan(self.path)
+
+    def bless(self, label=None):
+        if mounted:
+            bless(self.mount_point, label)
 
     def __revert(self):
         self.mount_point = ''
@@ -157,3 +173,78 @@ def find_mount(disk):
             raise RuntimeError("The mount point could not be found for " + disk)
         else:
             return result
+
+def enable_ownership(disk):
+    '''Enables ownership on the specified disk.
+
+    disk - the disk identifier in /dev/diskN format
+    '''
+
+    if re.match('/dev/', str(disk)) or re.match('/Volumes/', str(disk)):
+        result = subprocess.call(['diskutil', 'enableOwnership', str(disk)],
+                                 stderr=subprocess.STDOUT,
+                                 stdout=open(os.devnull, 'w'))
+        if result != 0:
+            raise RuntimeError("Ownership could not be enabled properly.")
+    else:
+        raise ValueError("Invalid disk given; must be in /dev/diskN format.")
+
+def clean(volume):
+    '''Removes all contents on the specified volume. Does not check for
+    permissions.
+
+    volume - the volume to be cleaned
+    '''
+
+    if not re.match('/Volumes/', str(volume)):
+        raise ValueError("Invalid volume specified; must be mounted in /Volumes/")
+    else:
+        if not volume.endswith('/'):
+            volume += '/'
+        result = subprocess.call(['rm', '-rf', str(volume) + '*'],
+                                 stderr=subprocess.STDOUT,
+                                 stdout=open(os.devnull, 'w'))
+        result += subprocess.call(['rm', '-rf', str(volume) + '.*'],
+                                  stderr=subprocess.STDOUT,
+                                  stdout=open(os.devnull, 'w'))
+        if result != 0:
+            raise RuntimeError("Contents of the disk could not be removed.")
+
+def bless(volume, label=None):
+    '''Blesses a volume for bootability.
+
+    volume - the volume to be blessed in /Volumes/
+    label  - the name to give the volume during boot (optional)
+    '''
+
+    if not volume.endswith('/'):
+        volume += '/'
+
+    bless = [
+        '/usr/sbin/bless',
+        '--folder', str(volume) + 'System/Library/CoreServices',
+        '--file', str(volume) + 'System/Library/CoreServices/boot.efi'
+    ]
+    if label:
+        bless.append('--label', str(label))
+
+    result = subprocess.call(bless,
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
+    if result != 0:
+        raise RuntimeError("Volume could not be blessed.")
+
+def scan(image):
+    '''Performs an imagescan on the image.
+
+    image - image to be scanned
+    '''
+
+    if os.path.isfile(image):
+        result = subprocess.call(['asr', 'imagescan', '--source', str(image)],
+                                 stderr=subprocess.STDOUT,
+                                 stdout=open(os.devnull, 'w'))
+        if result != 0:
+            raise RuntimeError("Image could not be scanned properly.")
+    else:
+        raise ValueError("Invalid image file specified.")
