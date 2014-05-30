@@ -207,7 +207,7 @@ def exit(code, image=None):
             try:
                 image.unmount()
             except:
-                logger.critical("Could not unmount image '" + image + "' during premature exit.")
+                logger.critical("Could not unmount image '" + str(image) + "' during premature exit.")
     sys.exit(code)
 
 def set_globals():

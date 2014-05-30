@@ -85,7 +85,7 @@ def create(image, vol='Mac OS X', size='200g'):
                                       '-volname', str(vol), str(image)])
 
     if not result.startswith('created: '):
-        raise RuntimeError("The image '" + image + "' was not created properly.")
+        raise RuntimeError("The image '" + str(image) + "' was not created properly.")
 
     return result.strip('\n').split(': ')[1]
 
@@ -111,7 +111,7 @@ def convert(image, format='UDRO', outfile=''):
                              stdout=open(os.devnull, 'w'))
 
     if result != 0:
-        raise RuntimeError("The image '" + image + "' was not successfully converted.")
+        raise RuntimeError("The image '" + str(image) + "' was not successfully converted.")
 
     return outfile
 
@@ -132,11 +132,11 @@ def attach(image):
             if len(columns) == 3 and columns[2]:
                 disk = columns[0].rstrip()
         if not disk:
-            raise RuntimeError("The disk '" + image + "' did not mount properly.")
+            raise RuntimeError("The disk '" + str(image) + "' did not mount properly.")
         else:
             return disk
     else:
-        raise ValueError("Invalid image file specified: + '" + image + "'")
+        raise ValueError("Invalid image file specified: + '" + str(image) + "'")
 
 def detach(disk):
     '''Unmounts the image.
@@ -157,7 +157,7 @@ def detach(disk):
         if result != 0:
             raise RuntimeError("Disk did not unmount successfully.")
     else:
-        raise ValueError("Invalid disk specified: '" + disk + "'")
+        raise ValueError("Invalid disk specified: '" + str(disk) + "'")
 
 def find_mount(disk):
     '''Takes in a disk identifier in /dev/diskN format and finds its mountpoint.
@@ -174,7 +174,7 @@ def find_mount(disk):
             if re.match(disk, line):
                 result = re.search('on ([^(]*)', line).group()[3:-1]
         if not result:
-            raise RuntimeError("The mount point could not be found for " + disk)
+            raise RuntimeError("The mount point could not be found for " + str(disk))
         else:
             return result
 
@@ -191,7 +191,7 @@ def enable_ownership(disk):
         if result != 0:
             raise RuntimeError("Ownership could not be enabled properly.")
     else:
-        raise ValueError("Invalid disk given: '" + disk + "'; must be in /dev/diskN format.")
+        raise ValueError("Invalid disk given: '" + str(disk) + "'; must be in /dev/diskN format.")
 
 def clean(volume):
     '''Removes all contents on the specified volume. Does not check for
@@ -201,7 +201,7 @@ def clean(volume):
     '''
 
     if not re.match('/Volumes/', str(volume)):
-        raise ValueError("Invalid volume specified: '" + volume + "'; must be mounted in /Volumes/")
+        raise ValueError("Invalid volume specified: '" + str(volume) + "'; must be mounted in /Volumes/")
     else:
         if not volume.endswith('/'):
             volume += '/'
@@ -209,12 +209,12 @@ def clean(volume):
                                  stderr=subprocess.STDOUT,
                                  stdout=open(os.devnull, 'w'))
         if result != 0:
-            raise RuntimeError("Contents of the volume '" + volume + "' could not be removed.")
+            raise RuntimeError("Contents of the volume '" + str(volume) + "' could not be removed.")
         result = subprocess.call(['rm', '-rf', str(volume) + '.*'],
                                  stderr=subprocess.STDOUT,
                                  stdout=open(os.devnull, 'w'))
         if result != 0:
-            raise RuntimeError("Contents of the volume '" + volume + "' could not be removed.")
+            raise RuntimeError("Contents of the volume '" + str(volume) + "' could not be removed.")
 
 def bless(volume, label=None):
     '''Blesses a volume for bootability.
@@ -239,7 +239,7 @@ def bless(volume, label=None):
                              stderr=subprocess.STDOUT,
                              stdout=open(os.devnull, 'w'))
     if result != 0:
-        raise RuntimeError("Volume '" + volume + "' could not be blessed.")
+        raise RuntimeError("Volume '" + str(volume) + "' could not be blessed.")
 
 def scan(image):
     '''Performs an imagescan on the image.
@@ -254,4 +254,4 @@ def scan(image):
         if result != 0:
             raise RuntimeError("Image could not be scanned properly.")
     else:
-        raise ValueError("Invalid image file specified: '" + image + "'")
+        raise ValueError("Invalid image file specified: '" + str(image) + "'")
