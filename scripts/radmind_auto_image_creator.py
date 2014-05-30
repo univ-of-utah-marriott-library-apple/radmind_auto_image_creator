@@ -80,20 +80,20 @@ def with_config():
 
                 # Get the system's OS version and build version.
                 # (This is the file used by `/usr/bin/sw_vers`)
-                vers = [
+                version_command = [
                     'defaults',
                     'read',
                     os.path.abspath('./System/Library/CoreServices/SystemVersion'),
                     'ProductVersion'
                 ]
-                build = [
+                build_command = [
                     'defaults',
                     'read',
                     os.path.abspath('./System/Library/CoreServices/SystemVersion'),
                     'ProductBuildVersion'
                 ]
-                version = subprocess.check_output(vers).strip('\n')
-                build = subprocess.check_output(build).strip('\n')
+                version = subprocess.check_output(version_command).strip('\n')
+                build = subprocess.check_output(build_command).strip('\n')
 
             # Bless
             bless_label = image + ' ' + version
