@@ -52,6 +52,8 @@ def run_fsdiff(command=defaults['comm'], outfile=None):
         '-%'
     ]
     if outfile:
+        if os.path.exists(outfile):
+            os.remove(outfile)
         fsdiff.append('-o')
         fsdiff.append(outfile)
     fsdiff.append('.')
