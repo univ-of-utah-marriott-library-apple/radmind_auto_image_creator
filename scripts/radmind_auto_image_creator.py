@@ -37,8 +37,8 @@ def with_config():
     if not os.path.exists(options['out_dir']):
         options['out_dir'] = '/tmp'
 
-    options['tmp_dir'] = os.abspath(options['tmp_dir'])
-    options['out_dir'] = os.abspath(options['out_dir'])
+    options['tmp_dir'] = os.path.abspath(options['tmp_dir'])
+    options['out_dir'] = os.path.abspath(options['out_dir'])
 
     if options['tmp_dir'].endswith('/'):
         options['tmp_dir'] = options['tmp_dir'][:-1]
