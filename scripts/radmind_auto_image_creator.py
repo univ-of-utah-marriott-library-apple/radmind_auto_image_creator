@@ -37,6 +37,9 @@ def with_config():
     if not os.path.exists(options['out_dir']):
         options['out_dir'] = '/tmp'
 
+    options['tmp_dir'] = os.abspath(options['tmp_dir'])
+    options['out_dir'] = os.abspath(options['out_dir'])
+
     if options['tmp_dir'].endswith('/'):
         options['tmp_dir'] = options['tmp_dir'][:-1]
     if options['out_dir'].endswith('/'):
@@ -70,7 +73,7 @@ def with_config():
                 i.enable_ownership()
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(12)
+                exit(12, i)
             logger.info("Volume ownership enabled.")
 
             # Clean volume
@@ -79,7 +82,7 @@ def with_config():
                 i.clean()
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(13)
+                exit(13, i)
             logger.info("Volume cleaned.")
 
             with ChDir(i.mount_point):
@@ -94,7 +97,7 @@ def with_config():
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    sys.exit(20)
+                    exit(20, i)
                 logger.info("Completed ktcheck.")
                 # fsdiff
                 fsdiff_out = options['tmp_dir'] + '/' + str(image) + '.T'
@@ -105,7 +108,7 @@ def with_config():
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    sys.exit(21)
+                    exit(21, i)
                 logger.info("Completed fsdiff.")
                 # lapply
                 logger.info("Running lapply with input from '" + fsdiff_out + "'...")
@@ -117,7 +120,7 @@ def with_config():
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    sys.exit(22)
+                    exit(22, i)
                 logger.info("Completed lapply.")
                 # post-maintenance
                 logger.info("Beginning post-maintenance...")
@@ -125,7 +128,7 @@ def with_config():
                     automagic_imaging.scripts.radmind.run_post_maintenance()
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    sys.exit(23)
+                    exit(23, i)
                 logger.info("Completed post-maintenance.")
 
                 # Get the system's OS version and build version.
@@ -154,7 +157,7 @@ def with_config():
                 i.bless(bless_label)
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(14)
+                exit(14, i)
             logger.info("Volume blessed.")
 
             # Unmount
@@ -163,13 +166,14 @@ def with_config():
                 i.unmount()
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(15)
+                exit(15, i)
             logger.info("Volume unmounted.")
 
             # Craft new file name in the form:
             # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
             date = datetime.datetime.now().strftime('%Y.%m.%d')
-            convert_name = date + '_' + image.upper() + '_' + version + '_' + build
+            convert_name = options['out_dir'] + date + '_' + image.upper() + '_'
+                           + version + '_' + build
 
             # Convert
             logger.info("Converting image to read-only at '" + convert_name + "'")
@@ -197,6 +201,14 @@ def with_config():
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(18)
             logger.info("Image scanned.")
+
+def exit(code, image=None):
+    if image and if image.mounted:
+        try:
+            image.unmount()
+        except:
+            logger.critical("Could not unmount image '" + image + "'")
+    sys.exit(code)
 
 def set_globals():
     global options
