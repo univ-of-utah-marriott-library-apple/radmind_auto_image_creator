@@ -114,6 +114,9 @@ def run_post_maintenance():
                              stdout=open(os.devnull, 'w'))
     if result != 0:
         raise RuntimeError("./usr/bin/update_dyld_shared_cache was unsuccesful.")
+    touch('./Library/Xhooks/Preferences/triggerfiles/radmind_finished')
+    if os.path.exists('./private/var/log/radmind/wait_for_radmind'):
+        os.remove('./private/var/log/radmind/wait_for_radmind')
 
 def touch(path):
     if not os.path.exists(os.path.dirname(path)):
