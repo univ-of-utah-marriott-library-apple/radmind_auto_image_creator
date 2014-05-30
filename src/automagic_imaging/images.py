@@ -64,7 +64,7 @@ class Image:
             scan(self.path)
 
     def bless(self, label=None):
-        if mounted:
+        if self.mounted:
             bless(self.mount_point, label)
 
     def __revert(self):
