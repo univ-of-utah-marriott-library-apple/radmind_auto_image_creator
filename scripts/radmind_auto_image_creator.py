@@ -202,11 +202,12 @@ def with_config():
             logger.info("Image scanned.")
 
 def exit(code, image=None):
-    if image and if image.mounted:
-        try:
-            image.unmount()
-        except:
-            logger.critical("Could not unmount image '" + image + "'")
+    if image:
+        if image.mounted:
+            try:
+                image.unmount()
+            except:
+                logger.critical("Could not unmount image '" + image + "' during premature exit.")
     sys.exit(code)
 
 def set_globals():
