@@ -97,7 +97,7 @@ def with_config():
                     sys.exit(20)
                 logger.info("Completed ktcheck.")
                 # fsdiff
-                fsdiff_out = options['tmp_dir'] + str(image) + '.T'
+                fsdiff_out = options['tmp_dir'] + '/' + str(image) + '.T'
                 logger.info("Running fsdiff with output to '" + fsdiff_out + "'...")
                 try:
                     automagic_imaging.scripts.radmind.run_fsdiff(
