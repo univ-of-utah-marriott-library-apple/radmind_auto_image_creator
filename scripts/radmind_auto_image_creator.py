@@ -37,18 +37,20 @@ def with_config():
         options['out_dir'] = '/tmp'
 
     for image in config.images:
+        logger.info("Processing image '" + str(image) + "'")
         # Change directory to the temporary location.
         with ChDir(options['tmp_dir']):
             # Create the blank sparse image.
-            logger.info("Creating image '" + str(image) + "'...")
+            logger.info("Creating image named '" + str(image) + "'...")
             try:
                 i = automagic_imaging.images.Image(make=True, name=image, volume=config.images[image]['volume'])
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(10)
-            logger.info("Created successfully at '" + i.path + "'")
+            logger.info("Created image '" + i.path + "'")
 
             # Mount sparse image.
+            logger.info("Mounting image...")
             try:
                 i.mount()
             except:
@@ -57,31 +59,68 @@ def with_config():
             logger.info("Mounted image at '" + i.mount_point + "'")
 
             # Enable ownership
+            logger.info("Enabling ownership of volume...")
             try:
                 i.enable_ownership()
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(12)
-            logger.info("Image ownership enabled.")
+            logger.info("Volume ownership enabled.")
 
             # Clean volume
+            logger.info("Emptying volume of all contents...")
             try:
                 i.clean()
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(13)
-            logger.info("Volume cleaned successfully.")
+            logger.info("Volume cleaned.")
 
             with ChDir(i.mount_point):
                 # Radmind
+                logger.info("Beginning radmind cycle...")
+                # ktcheck
+                logger.info("Running ktcheck...")
                 try:
-                    automagic_imaging.scripts.radmind.full(
+                    automagic_imaging.scripts.radmind.run_ktcheck(
                         cert=config.images[image]['cert'],
                         rserver=options['rserver']
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
                     sys.exit(20)
+                logger.info("Completed ktcheck.")
+                # fsdiff
+                fsdiff_out = '/tmp/fsdiff_out.T'
+                logger.info("Running fsdiff with output to '" + fsdiff_out + "'...")
+                try:
+                    automagic_imaging.scripts.radmind.run_fsdiff(
+                        outfile=fsdiff_out
+                    )
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    sys.exit(21)
+                logger.info("Completed fsdiff.")
+                # lapply
+                logger.info("Running lapply with input from '" + fsdiff_out + "'...")
+                try:
+                    automagic_imaging.scripts.radmind.run_lapply(
+                        cert=config.images[image]['cert'],
+                        rserver=options['rserver'],
+                        infile=fsdiff_out
+                    )
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    sys.exit(22)
+                logger.info("Completed lapply.")
+                # post-maintenance
+                logger.info("Beginning post-maintenance...")
+                try:
+                    automagic_imaging.scripts.radmind.run_post_maintenance()
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    sys.exit(23)
+                logger.info("Completed post-maintenance.")
 
                 # Get the system's OS version and build version.
                 # (This is the file used by `/usr/bin/sw_vers`)
@@ -98,24 +137,28 @@ def with_config():
                     'ProductBuildVersion'
                 ]
                 version = subprocess.check_output(version_command).strip('\n')
+                logger.info("Using system version: " + version)
                 build = subprocess.check_output(build_command).strip('\n')
+                logger.info("Using system build version: " + build)
 
             # Bless
+            logger.info("Blessing volume...")
             bless_label = image + ' ' + version
             try:
                 i.bless(bless_label)
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(14)
-            logger.info("Volume blessed successfully.")
+            logger.info("Volume blessed.")
 
             # Unmount
+            logger.info("Unmounting volume...")
             try:
                 i.unmount()
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(15)
-            logger.info("Image unmounted.")
+            logger.info("Volume unmounted.")
 
             # Craft new file name in the form:
             # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
@@ -123,23 +166,31 @@ def with_config():
             convert_name = date + '_' + image.upper() + '_' + version + '_' + build
 
             # Convert
+            logger.info("Converting image to read-only at '" + convert_name + "'")
             try:
                 i.convert(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
                 sys.exit(16)
-            logger.info("Converted to read-only at '" + "'")
+            logger.info("Image converted.")
 
             # Remove sparse image.
-            os.remove('./' + image + '.sparseimage')
+            logger.info("Removing original sparse image...")
+            try:
+                os.remove('./' + image + '.sparseimage')
+            except:
+                logger.error(sys.exc_info()[1].message)
+                sys.exit(17)
+            logger.info("Image removed.")
 
             # Scan
+            logger.info("Scanning image for asr use...")
             try:
                 i.scan()
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(17)
-            logger.info("Image successfully scanned.")
+                sys.exit(18)
+            logger.info("Image scanned.")
 
 def set_globals():
     global options

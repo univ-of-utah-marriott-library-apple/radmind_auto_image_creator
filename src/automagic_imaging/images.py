@@ -80,11 +80,13 @@ def create(image, vol='Mac OS X', size='200g'):
     size  - the maximum size of the sparse image
     '''
 
-    result = subprocess.check_output(['hdiutil', 'create', '-size', str(size),
-                                      '-type', 'SPARSE', '-ov', '-fs', 'HFS+J',
-                                      '-volname', str(vol), str(image)])
+    result = subprocess.call(['hdiutil', 'create', '-size', str(size),
+                              '-type', 'SPARSE', '-ov', '-fs', 'HFS+J',
+                              '-volname', str(vol), str(image)],
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
 
-    if not result.startswith('created: '):
+    if result != 0:
         raise RuntimeError("The image was not created properly.")
 
     return result.strip('\n').split(': ')[1]
@@ -106,7 +108,9 @@ def convert(image, format='UDRO', outfile=''):
         raise ValueError("Invalid format specified.")
 
     result = subprocess.call(['hdiutil', 'convert', str(image), '-format',
-                              str(format), '-o', str(outfile)])
+                              str(format), '-o', str(outfile)],
+                             stderr=subprocess.STDOUT,
+                             stdout=open(os.devnull, 'w'))
 
     if result != 0:
         raise RuntimeError("The image was not successfully converted.")
@@ -204,9 +208,11 @@ def clean(volume):
         result = subprocess.call(['rm', '-rf', str(volume) + '*'],
                                  stderr=subprocess.STDOUT,
                                  stdout=open(os.devnull, 'w'))
-        result += subprocess.call(['rm', '-rf', str(volume) + '.*'],
-                                  stderr=subprocess.STDOUT,
-                                  stdout=open(os.devnull, 'w'))
+        if result != 0:
+            raise RuntimeError("Contents of the disk could not be removed.")
+        result = subprocess.call(['rm', '-rf', str(volume) + '.*'],
+                                 stderr=subprocess.STDOUT,
+                                 stdout=open(os.devnull, 'w'))
         if result != 0:
             raise RuntimeError("Contents of the disk could not be removed.")
 
