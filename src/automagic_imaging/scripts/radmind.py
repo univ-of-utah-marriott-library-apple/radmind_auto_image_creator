@@ -2,7 +2,7 @@ import os
 import subprocess
 
 # Defaults
-defaults = []
+defaults = {}
 defaults['path'] = './private/var/radmind/'
 defaults['comm'] = defaults['path'] + 'client/command.K'
 defaults['port'] = '6223' # For certs
