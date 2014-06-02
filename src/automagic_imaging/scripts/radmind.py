@@ -43,28 +43,35 @@ def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
         raise RuntimeError("ktcheck did not complete successfully!")
 
 def run_fsdiff(command=defaults['comm'], outfile=None):
+    if outfile:
+        if os.path.exists(outfile):
+            os.remove(outfile)
+    else:
+        outfile = './var/log/radmind/fsdiff_output.T'
+        if not os.path.exists(os.path.dirname(outfile)):
+            touch(os.path.dirname(outfile))
     fsdiff = [
         '/usr/local/bin/fsdiff',
         '-A',
         '-c', 'sha1',
         '-K', command,
         '-I',
-        '-%'
+        '-%',
+        '-o', outfile,
+        '.'
     ]
-    if outfile:
-        if os.path.exists(outfile):
-            os.remove(outfile)
-        fsdiff.append('-o')
-        fsdiff.append(outfile)
-    fsdiff.append('.')
     result = subprocess.call(fsdiff,
                              stderr=subprocess.STDOUT,
                              stdout=open(os.devnull, 'w'))
     if result != 0:
         raise RuntimeError("fsdiff did not complete successfully!")
 
-def run_lapply(cert, rserver, infile, path=defaults['path'], port=defaults['port'],
-               auth=defaults['auth'], command=defaults['comm']):
+def run_lapply(cert, rserver, path=defaults['path'], port=defaults['port'],
+               auth=defaults['auth'], command=defaults['comm'], infile=None):
+    if not infile:
+        infile = './var/log/radmind/lapply_input.T'
+    if not os.path.isfile(infile):
+        raise ValueError("Invalid input file: " + str(infile))
     lapply = [
         '/usr/local/bin/lapply',
         '-c', 'sha1',
@@ -92,31 +99,55 @@ def run_post_maintenance():
     if not os.path.exists('./Library/Xhooks'):
         return
 
+    # Common directories used:
+    triggerfiles = './Library/Xhooks/Preferences/triggerfiles/'
+    radmind_log = './private/var/log/radmind/'
     # Remove these files in case radmind had an error and didn't delete them:
     remove_these = [
-        './Library/Xhooks/Preferences/triggerfiles/run_maintenance',
-        './Library/Xhooks/Preferences/triggerfiles/run_maintenance_balanced',
-        './Library/Xhooks/Preferences/triggerfiles/use_radmind_shadow'
+        triggerfiles + 'run_maintenance',
+        triggerfiles + 'run_maintenance_balanced',
+        triggerfiles + 'use_radmind_shadow'
+        radmind_log + 'wait_for_radmind'
     ]
     for file in remove_these:
         if os.path.exists(file):
             os.remove(file)
+
+    # Touch these files/directories:
+    touch_these = [
+        triggerfiles + 'loginpanel_message',
+        triggerfiles + 'logout_hook_finished',
+        triggerfiles + 'radmind_finished',
+        triggerfiles + 'radmind_xhooks_conf_finished',
+        radmind_log + 'maintenance_lastrun',
+        './System/Library/Extensions'
+    ]
+    for file in touch_these:
+        try:
+            touch(file)
+        except:
+            pass
+
+    # Write special things to certain places:
+    if os.path.isfile(triggerfiles + 'loginpanel_message'):
+        pass
+    if os.path.isfile(radmind_log + 'maintenance_lastrun'):
+        date = subprocess.check_output(['date', '"+%H:%M:%S %D %Z"'])
+        with open(radmind_log + 'maintenance_lastrun', 'w') as f:
+            f.write(date)
+
+    # Run some scripts:
     result = subprocess.call(['./Library/Xhooks/Modules/xhooks/bin/radmind_xhooks_conf.pl'],
                              stderr=subprocess.STDOUT,
                              stdout=open(os.devnull, 'w'))
     if result != 0:
         raise RuntimeError("./Library/Xhooks/Modules/xhooks/bin/radmind_xhooks_conf.pl was unsuccesful.")
-    touch('./Library/Xhooks/Preferences/triggerfiles/logout_hook_finished')
-    touch('./System/Library/Extensions')
     result = subprocess.call(['./usr/bin/update_dyld_shared_cache',
                               '-root', '.', '-force', '-universal_boot'],
                              stderr=subprocess.STDOUT,
                              stdout=open(os.devnull, 'w'))
     if result != 0:
         raise RuntimeError("./usr/bin/update_dyld_shared_cache was unsuccesful.")
-    touch('./Library/Xhooks/Preferences/triggerfiles/radmind_finished')
-    if os.path.exists('./private/var/log/radmind/wait_for_radmind'):
-        os.remove('./private/var/log/radmind/wait_for_radmind')
 
 def touch(path):
     if not os.path.exists(os.path.dirname(path)):

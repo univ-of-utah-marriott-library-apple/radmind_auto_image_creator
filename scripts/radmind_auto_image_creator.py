@@ -11,7 +11,7 @@ def main():
     automagic_imaging.scripts.parse_options.parse(options)
     if os.geteuid() != 0:
         print("You must be root to execute this script!")
-        sys.exit(1)
+        exit(1)
     setup_logger()
 
     # Eventually make it able to run one image at a time manually.
@@ -55,7 +55,7 @@ def with_config():
                 i = automagic_imaging.images.Image(make=True, name=image, volume=config.images[image]['volume'])
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(10)
+                exit(10)
             logger.info("Created image '" + i.path + "'")
 
             # Mount sparse image.
@@ -64,7 +64,7 @@ def with_config():
                 i.mount()
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(11)
+                exit(11)
             logger.info("Mounted image at '" + i.mount_point + "'")
 
             # Enable ownership
@@ -88,6 +88,7 @@ def with_config():
             with ChDir(i.mount_point):
                 # Radmind
                 logger.info("Beginning radmind cycle...")
+
                 # ktcheck
                 logger.info("Running ktcheck...")
                 try:
@@ -99,9 +100,11 @@ def with_config():
                     logger.error(sys.exc_info()[1].message)
                     exit(20, i)
                 logger.info("Completed ktcheck.")
+
                 # fsdiff
-                fsdiff_out = options['tmp_dir'] + '/' + str(image) + '.T'
-                logger.info("Running fsdiff with output to '" + fsdiff_out + "'...")
+                # fsdiff output goes to:
+                fsdiff_out = './var/log/radmind/fsdiff_output.T'
+                logger.info("Running fsdiff with output to '" + os.path.abspath(fsdiff_out) + "'...")
                 try:
                     automagic_imaging.scripts.radmind.run_fsdiff(
                         outfile=fsdiff_out
@@ -110,18 +113,23 @@ def with_config():
                     logger.error(sys.exc_info()[1].message)
                     exit(21, i)
                 logger.info("Completed fsdiff.")
+
                 # lapply
-                logger.info("Running lapply with input from '" + fsdiff_out + "'...")
+                # Move fsdiff output for lapply (for redundancy)
+                lapply_in = './var/log/radmind/lapply_input.T'
+                subprocess.call(['cp', fsdiff_out, lapply_in])
+                logger.info("Running lapply with input from '" + os.path.abspath(lapply_in) + "'...")
                 try:
                     automagic_imaging.scripts.radmind.run_lapply(
                         cert=config.images[image]['cert'],
                         rserver=options['rserver'],
-                        infile=fsdiff_out
+                        infile=lapply_in
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
                     exit(22, i)
                 logger.info("Completed lapply.")
+
                 # post-maintenance
                 logger.info("Beginning post-maintenance...")
                 try:
@@ -180,7 +188,7 @@ def with_config():
                 i.convert(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(16)
+                exit(16)
             logger.info("Image converted.")
 
             # Remove sparse image.
@@ -189,7 +197,7 @@ def with_config():
                 os.remove('./' + image + '.sparseimage')
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(17)
+                exit(17)
             logger.info("Image removed.")
 
             # Scan
@@ -198,16 +206,29 @@ def with_config():
                 automagic_imaging.images.scan(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
-                sys.exit(18)
+                exit(18)
             logger.info("Image scanned.")
 
 def exit(code, image=None):
     if image:
+        # If an image is given and it is still mounted, attempt to unmount it.
         if image.mounted:
             try:
+                # If unmount successful, return flow.
                 image.unmount()
+                return
             except:
-                logger.critical("Could not unmount image '" + str(image) + "' during premature exit.")
+                # If we fail, try unmounting a different way.
+                # (Sometimes this works for me.)
+                try:
+                    automagic_imaging.images.detach(image.mount_point)
+                    image.unmount()
+                    # If successful, return flow.
+                    return
+                except:
+                    # Otherwise, log the incident.
+                    logger.critical("Could not unmount image '" + str(image.name) + "' during premature exit.")
+    # Forceful exit.
     sys.exit(code)
 
 def set_globals():
