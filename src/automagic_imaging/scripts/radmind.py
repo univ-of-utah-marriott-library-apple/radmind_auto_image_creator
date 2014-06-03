@@ -130,8 +130,13 @@ def run_post_maintenance():
 
     # Write special things to certain places:
     if os.path.isfile(triggerfiles + 'loginpanel_message'):
-        pass
+        # Defines what is shown on login, something like:
+        # --6.3 0
+        message = '--' + datetime.datetime.now().strftime('%-m.%-d') + ' 0'
+        with open(triggerfiles + 'loginpanel_message', 'w') as f:
+            f.write(message)
     if os.path.isfile(radmind_log + 'maintenance_lastrun'):
+        # Put the date (formatted a particular way) in this file:
         date = subprocess.check_output(['date', '"+%H:%M:%S %D %Z"'])
         with open(radmind_log + 'maintenance_lastrun', 'w') as f:
             f.write(date)
