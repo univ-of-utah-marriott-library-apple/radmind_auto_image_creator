@@ -56,7 +56,7 @@ def with_config():
         if issue_image:
             # If there was a problem previously, unmount the previous image.
             # This is here because you can't unmount a volume while inside it...
-            logger.error("Image " + str(issue_image.name)) + " did not complete successfully.")
+            logger.error("Image " + str(issue_image.name) + " did not complete successfully.")
             failure_unmount(issue_image)
             issue_image = None
         # Start logging for this image.
