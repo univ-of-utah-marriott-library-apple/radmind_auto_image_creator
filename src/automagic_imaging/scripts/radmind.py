@@ -158,8 +158,10 @@ def run_post_maintenance():
         with open(triggerfiles + 'loginpanel_message', 'w') as f:
             f.write(message)
     if os.path.isfile(radmind_log + 'maintenance_lastrun'):
-        # Put the date (formatted a particular way) in this file:
-        date = subprocess.check_output(['date', '"+%H:%M:%S %D %Z"'])
+        # Put the date (formatted a particular way) in this file.
+        # (This method of acquiring the date is used because datetime lacks
+        # the timezone information.)
+        date = subprocess.check_output(['date', '+%H:%M:%S %D %Z'])
         with open(radmind_log + 'maintenance_lastrun', 'w') as f:
             f.write(date)
 
