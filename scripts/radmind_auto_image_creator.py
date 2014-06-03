@@ -94,7 +94,8 @@ def with_config():
                 try:
                     automagic_imaging.scripts.radmind.run_ktcheck(
                         cert=config.images[image]['cert'],
-                        rserver=options['rserver']
+                        rserver=options['rserver'],
+                        logfile='./var/log/radmind/ktcheck.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
@@ -107,7 +108,8 @@ def with_config():
                 logger.info("Running fsdiff with output to '" + os.path.abspath(fsdiff_out) + "'...")
                 try:
                     automagic_imaging.scripts.radmind.run_fsdiff(
-                        outfile=fsdiff_out
+                        outfile=fsdiff_out,
+                        logfile='./var/log/radmind/fsdiff.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
@@ -123,7 +125,8 @@ def with_config():
                     automagic_imaging.scripts.radmind.run_lapply(
                         cert=config.images[image]['cert'],
                         rserver=options['rserver'],
-                        infile=lapply_in
+                        infile=lapply_in,
+                        logfile='./var/log/radmind/lapply.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)

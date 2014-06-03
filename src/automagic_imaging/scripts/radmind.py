@@ -18,7 +18,7 @@ def full(cert, rserver, path=defaults['path'], port=defaults['port'],
     run_post_maintenance()
 
 def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
-            auth=defaults['auth'], command=defaults['comm']):
+            auth=defaults['auth'], command=defaults['comm'], logfile=None):
     if not os.path.exists(command):
         touch(command)
     ktcheck = [
@@ -36,20 +36,26 @@ def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
         '-y', cert,
         '-z', cert
     ]
+    STDOUT = None
+    if logfile:
+        if not os.path.isfile(logfile):
+            touch(logfile)
+        STDOUT = open(logfile, 'w')
+    if not logfile:
+        STDOUT = open(os.devnull, 'w')
     result = subprocess.call(ktcheck,
                              stderr=subprocess.STDOUT,
-                             stdout=open(os.devnull, 'w'))
+                             stdout=STDOUT)
     if result > 1:
         raise RuntimeError("ktcheck did not complete successfully!")
 
-def run_fsdiff(command=defaults['comm'], outfile=None):
-    if outfile:
-        if os.path.exists(outfile):
-            os.remove(outfile)
-    else:
+def run_fsdiff(command=defaults['comm'], outfile=None, logfile=None):
+    if not outfile:
         outfile = './var/log/radmind/fsdiff_output.T'
-        if not os.path.exists(os.path.dirname(outfile)):
-            touch(os.path.dirname(outfile))
+    if not os.path.isdir(os.path.dirname(outfile)):
+        os.makedirs(os.path.dirname(outfile))
+    if os.path.exists(outfile):
+        os.remove(outfile)
     fsdiff = [
         '/usr/local/bin/fsdiff',
         '-A',
@@ -60,14 +66,22 @@ def run_fsdiff(command=defaults['comm'], outfile=None):
         '-o', outfile,
         '.'
     ]
+    STDOUT = None
+    if logfile:
+        if not os.path.isfile(logfile):
+            touch(logfile)
+        STDOUT = open(logfile, 'w')
+    if not logfile:
+        STDOUT = open(os.devnull, 'w')
     result = subprocess.call(fsdiff,
                              stderr=subprocess.STDOUT,
-                             stdout=open(os.devnull, 'w'))
+                             stdout=STDOUT)
     if result != 0:
         raise RuntimeError("fsdiff did not complete successfully!")
 
 def run_lapply(cert, rserver, path=defaults['path'], port=defaults['port'],
-               auth=defaults['auth'], command=defaults['comm'], infile=None):
+               auth=defaults['auth'], command=defaults['comm'], infile=None,
+               logfile=None):
     if not infile:
         infile = './var/log/radmind/lapply_input.T'
     if not os.path.isfile(infile):
@@ -87,9 +101,16 @@ def run_lapply(cert, rserver, path=defaults['path'], port=defaults['port'],
         '-z', cert,
         infile
     ]
+    STDOUT = None
+    if logfile:
+        if not os.path.isfile(logfile):
+            touch(logfile)
+        STDOUT = open(logfile, 'w')
+    if not logfile:
+        STDOUT = open(os.devnull, 'w')
     result = subprocess.call(lapply,
                              stderr=subprocess.STDOUT,
-                             stdout=open(os.devnull, 'w'))
+                             stdout=STDOUT)
     if result != 0:
         raise RuntimeError("lapply did not complete successfully!")
 
@@ -106,7 +127,7 @@ def run_post_maintenance():
     remove_these = [
         triggerfiles + 'run_maintenance',
         triggerfiles + 'run_maintenance_balanced',
-        triggerfiles + 'use_radmind_shadow'
+        triggerfiles + 'use_radmind_shadow',
         radmind_log + 'wait_for_radmind'
     ]
     for file in remove_these:
