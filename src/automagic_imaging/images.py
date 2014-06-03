@@ -39,12 +39,12 @@ class Image:
             self.mount_point = find_mount(self.disk_id)
             self.mounted = True
 
-    def unmount(self):
-        self.detach()
+    def unmount(self, force=False):
+        self.detach(force)
 
-    def detach(self):
+    def detach(self, force=False):
         if self.mounted:
-            detach(self.disk_id)
+            detach(self.disk_id, force)
             self.__revert()
 
     def enable_ownership(self):
@@ -138,20 +138,34 @@ def attach(image):
     else:
         raise ValueError("Invalid image file specified: + '" + str(image) + "'")
 
-def detach(disk):
+def detach(disk, force=False):
     '''Unmounts the image.
 
     disk - the disk identifier to be unmounted; must be /dev/diskN format
     '''
 
     if re.match('/dev/', str(disk)):
-        result = subprocess.call(['hdiutil', 'detach', str(disk)],
+        detach = [
+            'hdiutil',
+            'detach',
+            str(disk)
+        ]
+        if force:
+            detach.append('-force')
+        result = subprocess.call(detach,
                                  stderr=subprocess.STDOUT,
                                  stdout=open(os.devnull, 'w'))
         if result != 0:
             raise RuntimeError("Disk did not unmount successfully.")
     elif re.match('/Volumes/', str(disk)):
-        result = subprocess.call(['diskutil', 'unmountDisk', str(disk)],
+        unmountDisk = [
+            'diskutil',
+            'unmountDisk'
+        ]
+        if force:
+            unmountDisk.append('force')
+        unmountDisk.append(str(disk))
+        result = subprocess.call(unmountDisk,
                                  stderr=subprocess.STDOUT,
                                  stdout=open(os.devnull, 'w'))
         if result != 0:

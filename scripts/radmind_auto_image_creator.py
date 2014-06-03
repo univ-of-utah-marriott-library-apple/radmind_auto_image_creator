@@ -15,12 +15,16 @@ def main():
         sys.exit(1)
     setup_logger()
 
+    logger.info("********************************************************************************")
+    logger.info("STARTING IMAGING")
+
     # Eventually make it able to run one image at a time manually.
     # For now, always use a config file.
     if not options['config']:
         options['config'] = '/etc/radmind_auto_image_creator/config.ini'
 
     with_config()
+    logger.info("FINISHED IMAGING")
 
 def with_config():
     logger.info("Using config file '" + os.path.abspath(options['config']) + "'")
@@ -52,9 +56,11 @@ def with_config():
         if issue_image:
             # If there was a problem previously, unmount the previous image.
             # This is here because you can't unmount a volume while inside it...
+            logger.error("Image " + str(issue_image.name)) + " did not complete successfully.")
             failure_unmount(issue_image)
             issue_image = None
         # Start logging for this image.
+        logger.info("--------------------------------------------------------------------------------")
         logger.info("Processing image '" + str(image) + "'")
         # Change directory to the temporary location.
         with ChDir(options['tmp_dir']):
@@ -231,7 +237,6 @@ def with_config():
 
             # Done
             logger.info("Successfully finished " + str(image) + ".")
-            logger.info("--------------------------------------------------------------------------------")
 
 def failure_unmount(image):
     if image:
@@ -240,15 +245,15 @@ def failure_unmount(image):
             while (attempt > 0):
                 time.sleep(2)
                 try:
-                    image.unmount()
+                    image.unmount(force=True)
                     logger.info("Successfully unmounted '" + str(image.name) + "'")
                     return
                 except:
                     try:
                         time.sleep(2)
-                        automagic_imaging.images.detach(image.mount_point)
+                        automagic_imaging.images.detach(image.mount_point, force=True)
                         time.sleep(2)
-                        image.unmount()
+                        image.unmount(force=True)
                         logger.info("Successfully unmounted '" + str(image.name) + "'")
                         return
                     except:
