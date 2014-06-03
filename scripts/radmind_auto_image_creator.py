@@ -106,7 +106,7 @@ def with_config():
                     automagic_imaging.scripts.radmind.run_ktcheck(
                         cert=config.images[image]['cert'],
                         rserver=options['rserver'],
-                        logfile='./var/log/radmind/imaging_ktcheck.log'
+                        logfile='./private/var/log/radmind/imaging_ktcheck.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
@@ -116,12 +116,12 @@ def with_config():
 
                 # fsdiff
                 # fsdiff output goes to:
-                fsdiff_out = './var/log/radmind/fsdiff_output.T'
+                fsdiff_out = './private/var/log/radmind/fsdiff_output.T'
                 logger.info("Running fsdiff with output to '" + os.path.abspath(fsdiff_out) + "'...")
                 try:
                     automagic_imaging.scripts.radmind.run_fsdiff(
                         outfile=fsdiff_out,
-                        logfile='./var/log/radmind/imaging_fsdiff.log'
+                        logfile='./private/var/log/radmind/imaging_fsdiff.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
@@ -131,7 +131,7 @@ def with_config():
 
                 # lapply
                 # Move fsdiff output for lapply (for redundancy)
-                lapply_in = './var/log/radmind/lapply_input.T'
+                lapply_in = './private/var/log/radmind/lapply_input.T'
                 subprocess.call(['cp', fsdiff_out, lapply_in])
                 logger.info("Running lapply with input from '" + os.path.abspath(lapply_in) + "'...")
                 try:
@@ -139,7 +139,7 @@ def with_config():
                         cert=config.images[image]['cert'],
                         rserver=options['rserver'],
                         infile=lapply_in,
-                        logfile='./var/log/radmind/imaging_lapply.log'
+                        logfile='./private/var/log/radmind/imaging_lapply.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
@@ -241,6 +241,7 @@ def failure_unmount(image):
                 time.sleep(2)
                 try:
                     image.unmount()
+                    logger.info("Successfully unmounted '" + str(image.name) + "'")
                     return
                 except:
                     try:
@@ -248,6 +249,7 @@ def failure_unmount(image):
                         automagic_imaging.images.detach(image.mount_point)
                         time.sleep(2)
                         image.unmount()
+                        logger.info("Successfully unmounted '" + str(image.name) + "'")
                         return
                     except:
                         logger.error("Could not unmount image '" + str(image.name) +

@@ -51,7 +51,7 @@ def run_ktcheck(cert, rserver, path=defaults['path'], port=defaults['port'],
 
 def run_fsdiff(command=defaults['comm'], outfile=None, logfile=None):
     if not outfile:
-        outfile = './var/log/radmind/fsdiff_output.T'
+        outfile = './private/var/log/radmind/fsdiff_output.T'
     if not os.path.isdir(os.path.dirname(outfile)):
         os.makedirs(os.path.dirname(outfile))
     if os.path.exists(outfile):
@@ -83,7 +83,7 @@ def run_lapply(cert, rserver, path=defaults['path'], port=defaults['port'],
                auth=defaults['auth'], command=defaults['comm'], infile=None,
                logfile=None):
     if not infile:
-        infile = './var/log/radmind/lapply_input.T'
+        infile = './private/var/log/radmind/lapply_input.T'
     if not os.path.isfile(infile):
         raise ValueError("Invalid input file: " + str(infile))
     lapply = [
