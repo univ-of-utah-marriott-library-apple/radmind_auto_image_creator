@@ -236,7 +236,8 @@ def exit(code, image=None):
                         return
                     except:
                         # Otherwise, log the incident.
-                        logger.error("Could not unmount image '" + str(image.name) + "' during premature exit on attempt " + attempt + ".")
+                        logger.error("Could not unmount image '" + str(image.name) +
+                                     "' during premature exit on attempt " + str(attempt) + ".")
             logger.critical("Failed to unmount image '" + str(image.name) + "' during premature exit. Please unmount manually.")
     # Forceful exit.
     sys.exit(code)
