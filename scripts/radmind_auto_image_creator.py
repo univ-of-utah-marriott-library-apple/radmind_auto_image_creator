@@ -12,7 +12,7 @@ def main():
     automagic_imaging.scripts.parse_options.parse(options)
     if os.geteuid() != 0:
         print("You must be root to execute this script!")
-        exit(1)
+        sys.exit(1)
     setup_logger()
 
     # Eventually make it able to run one image at a time manually.
@@ -23,7 +23,7 @@ def main():
     with_config()
 
 def with_config():
-    logger.info("Using config file '" + options['config'] + "'")
+    logger.info("Using config file '" + os.path.abspath(options['config']) + "'")
     config = automagic_imaging.configurator.Configurator(options['config'])
 
     if not options['tmp_dir']:
@@ -46,26 +46,34 @@ def with_config():
     if options['out_dir'].endswith('/'):
         options['out_dir'] = options['out_dir'][:-1]
 
+    issue_image = None
+
     for image in config.images:
+        if issue_image:
+            # If there was a problem previously, unmount the previous image.
+            # This is here because you can't unmount a volume while inside it...
+            failure_unmount(issue_image)
+            issue_image = None
+        # Start logging for this image.
         logger.info("Processing image '" + str(image) + "'")
         # Change directory to the temporary location.
         with ChDir(options['tmp_dir']):
-            # Create the blank sparse image.
+            # Create the blank sparse image
             logger.info("Creating image named '" + str(image) + "'...")
             try:
                 i = automagic_imaging.images.Image(make=True, name=image, volume=config.images[image]['volume'])
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(10)
+                continue
             logger.info("Created image '" + i.path + "'")
 
-            # Mount sparse image.
+            # Mount sparse image to write to
             logger.info("Mounting image...")
             try:
                 i.mount()
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(11)
+                continue
             logger.info("Mounted image at '" + i.mount_point + "'")
 
             # Enable ownership
@@ -74,7 +82,8 @@ def with_config():
                 i.enable_ownership()
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(12, i)
+                issue_image = i
+                continue
             logger.info("Volume ownership enabled.")
 
             # Clean volume
@@ -83,7 +92,8 @@ def with_config():
                 i.clean()
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(13, i)
+                issue_image = i
+                continue
             logger.info("Volume cleaned.")
 
             with ChDir(i.mount_point):
@@ -96,11 +106,12 @@ def with_config():
                     automagic_imaging.scripts.radmind.run_ktcheck(
                         cert=config.images[image]['cert'],
                         rserver=options['rserver'],
-                        logfile='./var/log/radmind/ktcheck.log'
+                        logfile='./var/log/radmind/imaging_ktcheck.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    exit(20, i)
+                    issue_image = i
+                    continue
                 logger.info("Completed ktcheck.")
 
                 # fsdiff
@@ -110,11 +121,12 @@ def with_config():
                 try:
                     automagic_imaging.scripts.radmind.run_fsdiff(
                         outfile=fsdiff_out,
-                        logfile='./var/log/radmind/fsdiff.log'
+                        logfile='./var/log/radmind/imaging_fsdiff.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    exit(21, i)
+                    issue_image = i
+                    continue
                 logger.info("Completed fsdiff.")
 
                 # lapply
@@ -127,23 +139,25 @@ def with_config():
                         cert=config.images[image]['cert'],
                         rserver=options['rserver'],
                         infile=lapply_in,
-                        logfile='./var/log/radmind/lapply.log'
+                        logfile='./var/log/radmind/imaging_lapply.log'
                     )
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    exit(22, i)
+                    issue_image = i
+                    continue
                 logger.info("Completed lapply.")
 
-                # post-maintenance
+                # Xhooks post-maintenance
                 logger.info("Beginning post-maintenance...")
                 try:
                     automagic_imaging.scripts.radmind.run_post_maintenance()
                 except:
                     logger.error(sys.exc_info()[1].message)
-                    exit(23, i)
+                    issue_image = i
+                    continue
                 logger.info("Completed post-maintenance.")
 
-                # Get the system's OS version and build version.
+                # Get the system's OS version and build version for file naming.
                 # (This is the file used by `/usr/bin/sw_vers`)
                 version_command = [
                     'defaults',
@@ -162,85 +176,86 @@ def with_config():
                 build = subprocess.check_output(build_command).strip('\n')
                 logger.info("Using system build version: " + build)
 
-            # Bless
+            # Bless volume to make it mountable
             logger.info("Blessing volume...")
             bless_label = image + ' ' + version
             try:
                 i.bless(bless_label)
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(14, i)
+                issue_image = i
+                continue
             logger.info("Volume blessed.")
 
-            # Unmount
+            # Unmount volume for conversion
             logger.info("Unmounting volume...")
             try:
                 i.unmount()
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(15, i)
+                issue_image = i
+                continue
             logger.info("Volume unmounted.")
 
             # Craft new file name in the form:
-            # YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD
+            # {out_dir}/YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD.dmg
             date = datetime.datetime.now().strftime('%Y.%m.%d')
             convert_name = options['out_dir'] + '/' + date + '_' + image.upper() + '_' + version + '_' + build + '.dmg'
 
-            # Convert
+            # Convert from .sparseimage to read-only .dmg
             logger.info("Converting image to read-only at '" + convert_name + "'")
             try:
                 i.convert(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(16)
+                continue
             logger.info("Image converted.")
 
-            # Remove sparse image.
+            # Remove sparse image
             logger.info("Removing original sparse image...")
             try:
                 os.remove('./' + image + '.sparseimage')
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(17)
+                continue
             logger.info("Image removed.")
 
-            # Scan
+            # Scan image for ASR use
             logger.info("Scanning image for asr use...")
             try:
                 automagic_imaging.images.scan(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
-                exit(18)
+                continue
             logger.info("Image scanned.")
 
-def exit(code, image=None):
+            # Done
+            logger.info("Successfully finished " + str(image) + ".")
+            logger.info("--------------------------------------------------------------------------------")
+
+def failure_unmount(image):
     if image:
-        # If an image is given and it is still mounted, attempt to unmount it.
         if image.mounted:
-            attempt = 1
-            while (attempt <= 3):
-                time.sleep(5)
+            attempt = 3
+            while (attempt > 0):
+                time.sleep(2)
                 try:
-                    # If unmount successful, return flow.
                     image.unmount()
                     return
                 except:
-                    # If we fail, try unmounting a different way.
-                    # (Sometimes this works for me.)
                     try:
-                        time.sleep(5)
+                        time.sleep(2)
                         automagic_imaging.images.detach(image.mount_point)
-                        time.sleep(5)
+                        time.sleep(2)
                         image.unmount()
-                        # If successful, return flow.
                         return
                     except:
-                        # Otherwise, log the incident.
                         logger.error("Could not unmount image '" + str(image.name) +
-                                     "' during premature exit on attempt " + str(attempt) + ".")
-            logger.critical("Failed to unmount image '" + str(image.name) + "' during premature exit. Please unmount manually.")
-    # Forceful exit.
-    sys.exit(code)
+                                     "' on device " + image.disk_id + " during premature exit. " +
+                                     str(attempt - 1) + " attempts remaining.")
+                attempt -= 1
+            logger.error("Failed to unmount image '" + str(image.name) +
+                         "' during premature exit. Please unmount manually from " + image.disk_id + ".")
 
 def set_globals():
     global options
