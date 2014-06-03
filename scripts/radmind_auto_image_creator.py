@@ -5,6 +5,7 @@ import datetime
 import os
 import subprocess
 import sys
+import time
 
 def main():
     set_globals()
@@ -216,21 +217,27 @@ def exit(code, image=None):
     if image:
         # If an image is given and it is still mounted, attempt to unmount it.
         if image.mounted:
-            try:
-                # If unmount successful, return flow.
-                image.unmount()
-                return
-            except:
-                # If we fail, try unmounting a different way.
-                # (Sometimes this works for me.)
+            attempt = 1
+            while (attempt <= 3):
+                time.sleep(5)
                 try:
-                    automagic_imaging.images.detach(image.mount_point)
+                    # If unmount successful, return flow.
                     image.unmount()
-                    # If successful, return flow.
                     return
                 except:
-                    # Otherwise, log the incident.
-                    logger.critical("Could not unmount image '" + str(image.name) + "' during premature exit.")
+                    # If we fail, try unmounting a different way.
+                    # (Sometimes this works for me.)
+                    try:
+                        time.sleep(5)
+                        automagic_imaging.images.detach(image.mount_point)
+                        time.sleep(5)
+                        image.unmount()
+                        # If successful, return flow.
+                        return
+                    except:
+                        # Otherwise, log the incident.
+                        logger.error("Could not unmount image '" + str(image.name) + "' during premature exit on attempt " + attempt + ".")
+            logger.critical("Failed to unmount image '" + str(image.name) + "' during premature exit. Please unmount manually.")
     # Forceful exit.
     sys.exit(code)
 
