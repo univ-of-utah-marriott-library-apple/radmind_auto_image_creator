@@ -4,7 +4,7 @@ from src import automagic_imaging
 setup(
     name='Automagic Imaging',
     version=automagic_imaging.__version__,
-    url='https://github.com/univ-of-utah-marriott-library-apple/automated_osx_imaging',
+    url='https://github.com/univ-of-utah-marriott-library-apple/radmind_auto_image_creator',
     author='Pierce Darragh, Marriott Library IT Services',
     author_email='mlib-its-mac-github@lists.utah.edu',
     description=('A group of scripts to set up automated OS X imaging with Radmind.'),
