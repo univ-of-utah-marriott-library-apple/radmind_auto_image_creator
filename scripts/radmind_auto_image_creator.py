@@ -382,14 +382,13 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
                 raise WithBreaker(i)
             logger.info("Volume unmounted.")
 
-
+            # Craft new file name in the form:
+            # {out_dir}/YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD.dmg
+            date = datetime.datetime.now().strftime('%Y.%m.%d')
+            convert_name = out_dir + '/' + date + '_' + image.upper() + '_' + version + '_' + build + '.dmg'
             # Convert from .sparseimage to read-only .dmg
             logger.info("Converting image to read-only at '" + convert_name + "'")
             try:
-                # Craft new file name in the form:
-                # {out_dir}/YYYY.mm.dd_IMAGENAME_OSVERSION_OSBUILD.dmg
-                date = datetime.datetime.now().strftime('%Y.%m.%d')
-                convert_name = out_dir + '/' + date + '_' + image.upper() + '_' + version + '_' + build + '.dmg'
                 i.convert(convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
