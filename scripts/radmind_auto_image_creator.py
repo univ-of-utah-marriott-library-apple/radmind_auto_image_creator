@@ -351,7 +351,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
                 raise WithBreaker(e.image)
 
             # Declare the disk label for blessing here; could be modified
-            bless_label = volume
+            bless_label = volname
             if options['attach_version']:
                 # Rename the volume to include the system version.
                 bless_label = options['original_volname'].replace('$VERSION', version)
