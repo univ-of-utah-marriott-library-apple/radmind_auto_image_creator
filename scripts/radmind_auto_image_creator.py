@@ -15,7 +15,12 @@ def main():
         sys.exit(1)
     setup_logger()
 
+    args = sys.argv
+    args[0] = os.path.basename(args[0])
+
     logger.info("********************************************************************************")
+    logger.info(options['long_name'] + " v. " + options['version'])
+    logger.info("Run as: `" + ' '.join(args) + "`")
     logger.info("STARTING IMAGING")
 
     if options['interactive']:
