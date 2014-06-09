@@ -15,7 +15,8 @@ def usage(options):
     version(options)
 
     print '''\
-usage: {} [-hvn] [-l log]
+usage: {} [-hvni] [-l log] [-c config] [-t tmp_dir] [-o out_dir]
+          [-r rserver] [-C cert] [-I image] [-V volume]
 
 Create bootable disk images from Radmind.
 

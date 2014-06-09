@@ -173,16 +173,23 @@ def produce_image():
     saves time and typing, since all of the values are generally stored here
     anyway.
     '''
+    if options['volname'].find('$VERSION') >= 0:
+        options['attach_version'] = True
+        options['original_volname'] = options['volname']
+        options['volname'] = options['volname'].replace('$VERSION', '')
+        options['volname'] = options['volname'].replace('  ', ' ')
+
     image_producer(
-        tmp_dir = options['tmp_dir'],
-        out_dir = options['out_dir'],
-        rserver = options['rserver'],
-        cert    = options['cert'],
-        image   = options['image'],
-        volname = options['volname']
+        tmp_dir        = options['tmp_dir'],
+        out_dir        = options['out_dir'],
+        rserver        = options['rserver'],
+        cert           = options['cert'],
+        image          = options['image'],
+        volname        = options['volname'],
+        attach_version = options['attach_version']
     )
 
-def image_producer(tmp_dir, out_dir, rserver, cert, image, volname):
+def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_version=False):
     '''Creates an image and fills its filesystem from radmind.'''
     # All options must be non-empty.
     if not tmp_dir:
@@ -343,11 +350,23 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname):
             except WithBreaker as e:
                 raise WithBreaker(e.image)
 
+            # Declare the disk label for blessing here; could be modified
+            bless_label = volume
+            if options['attach_version']:
+                # Rename the volume to include the system version.
+                bless_label = options['original_volname'].replace('$VERSION', version)
+                logger.info("Renaming volume to '" + bless_label + "'...")
+                try:
+                    i.rename(bless_label)
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    raise WithBreaker(i)
+                logger.info("Volume renamed.")
+
             # Bless volume to make it mountable
             logger.info("Blessing volume...")
             try:
                 time.sleep(10)
-                bless_label = image + ' ' + version
                 i.bless(bless_label)
             except:
                 logger.error(sys.exc_info()[1].message)
@@ -440,12 +459,14 @@ def set_globals():
     options['version'] = automagic_imaging.__version__
 
     # Initialize null keys
-    options['tmp_dir'] = None
-    options['out_dir'] = None
-    options['rserver'] = None
-    options['cert']    = None
-    options['image']   = None
-    options['volname'] = None
+    options['tmp_dir']          = None
+    options['out_dir']          = None
+    options['rserver']          = None
+    options['cert']             = None
+    options['image']            = None
+    options['volname']          = None
+    options['attach_version']   = False
+    options['original_volname'] = None
 
 
 def setup_logger():

@@ -67,6 +67,10 @@ class Image:
         if self.mounted:
             bless(self.mount_point, label)
 
+    def rename(self, new_name):
+        if self.mounted:
+            rename(self.mount_point, new_name)
+
     def __revert(self):
         self.mount_point = ''
         self.disk_id = ''
@@ -269,3 +273,22 @@ def scan(image):
             raise RuntimeError("Image could not be scanned properly.")
     else:
         raise ValueError("Invalid image file specified: '" + str(image) + "'")
+
+def rename(volume, new_name):
+    '''Renames a mounted volume. May not take effect until the volume is
+    unmounted and then remounted. Only works on writable volumes (of course).
+
+    volume   - the volume to be renamed in /Volumes/
+    new_name - the new name for the mounted volume
+    '''
+
+    if not re.match('/Volumes/', str(volume)):
+        raise ValueError("Invalid volume specified: '" + str(volume) + "'; must be mounted in /Volumes/")
+    else:
+        if not volume.endswith('/'):
+            volume += '/'
+        result = subprocess.call(['diskutil', 'rename', str(volume), str(new_name)],
+                                 stderr=subprocess.STDOUT,
+                                 stdout=open(os.devnull, 'w'))
+        if result != 0:
+            raise RuntimeError("The volume '" + str(volume) + "' could not be renamed.")
