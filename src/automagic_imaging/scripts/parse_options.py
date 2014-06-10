@@ -17,6 +17,7 @@ def usage(options):
     print '''\
 usage: {} [-hvni] [-l log] [-c config] [-t tmp_dir] [-o out_dir]
           [-r rserver] [-C cert] [-I image] [-V volume]
+          [--persist-on-fail]
 
 Create bootable disk images from Radmind.
 
@@ -26,6 +27,9 @@ Create bootable disk images from Radmind.
     i : provides an interactive method of getting imaging information; this will
         only create one image per run, and will override any other information
         you provide
+
+    --persist-on-fail : prevent the program from deleting failed image files;
+                        (this is not recommended unless you are sure of space)
 
     l log     : use 'log' as the logging output location
     c config  : use 'config' as the configuration file
@@ -45,14 +49,11 @@ def parse(options):
     '''
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('-h', '--help',
-                        action='store_true')
-    parser.add_argument('-v', '--version',
-                        action='store_true')
-    parser.add_argument('-n', '--no-log',
-                        action='store_true')
-    parser.add_argument('-i', '--interactive',
-                        action='store_true')
+    parser.add_argument('-h', '--help', action='store_true')
+    parser.add_argument('-v', '--version', action='store_true')
+    parser.add_argument('-n', '--no-log', action='store_true')
+    parser.add_argument('-i', '--interactive', action='store_true')
+    parser.add_argument('--persist-on-fail', action='store_true')
     parser.add_argument('-l', '--log')
     parser.add_argument('-c', '--config')
     parser.add_argument('-t', '--tmp_dir')
@@ -72,6 +73,7 @@ def parse(options):
     options['log_dest'] = args.log
     options['config'] = args.config
     options['interactive'] = args.interactive
+    options['persist'] = args.persist_on_fail
     options['tmp_dir'] = args.tmp_dir
     options['out_dir'] = args.out_dir
     options['rserver'] = args.rserver

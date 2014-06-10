@@ -381,7 +381,10 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
             # Unmount volume for conversion
             logger.info("Unmounting volume...")
             try:
-                i.unmount()
+                try:
+                    i.unmount()
+                except:
+                    failure_unmount(i)
             except:
                 logger.error(sys.exc_info()[1].message)
                 raise WithBreaker(i)
@@ -426,6 +429,8 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
         # This is here because you can't unmount a volume while inside it...
         logger.error("Image '" + image + "' did not complete successfully.")
         failure_unmount(e.image)
+        if not options['persist'] and os.path.isfile(e.image.path):
+            os.remove(e.image.path)
 
 def failure_unmount(image):
     '''Attempt to unmount a volume/disk multiple times after a failure.'''

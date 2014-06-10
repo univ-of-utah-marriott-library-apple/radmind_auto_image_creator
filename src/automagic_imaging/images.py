@@ -70,6 +70,8 @@ class Image:
     def rename(self, new_name):
         if self.mounted:
             rename(self.mount_point, new_name)
+            self.mount_point = find_mount(self.disk_id)
+            self.name = new_name
 
     def __revert(self):
         self.mount_point = ''
