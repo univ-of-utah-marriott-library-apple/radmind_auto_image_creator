@@ -439,7 +439,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
         # This is here because you can't unmount a volume while inside it...
         logger.error("Image '" + image + "' did not complete successfully.")
         failure_unmount(e.image)
-        if not options['persist'] and os.path.isfile(e.image.path)
+        if not options['persist'] and os.path.isfile(e.image.path):
             if e.image.mounted:
                 logger.error("Image file '" + e.image.path + "' was not deleted because it is still mounted!")
             else:
