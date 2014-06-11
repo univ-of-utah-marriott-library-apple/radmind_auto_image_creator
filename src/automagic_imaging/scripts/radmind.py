@@ -115,7 +115,7 @@ def run_lapply(cert, rserver, path=defaults['path'], port=defaults['port'],
     if result != 0:
         raise RuntimeError("lapply did not complete successfully!")
 
-def run_post_maintenance():
+def run_post_maintenance(volname=None):
     # We use a system called Xhooks to manage our post-maintenance routines.
     # If you don't have Xhooks... you don't need post-maintenance.
     if not os.path.exists('./Library/Xhooks'):
@@ -150,7 +150,7 @@ def run_post_maintenance():
         except:
             pass
 
-    # Write special things to certain places:
+    # Let the system know when Radmind was 'run':
     if os.path.isfile(triggerfiles + 'loginpanel_message'):
         # Defines what is shown on login, something like:
         # --6.3 0
@@ -164,6 +164,30 @@ def run_post_maintenance():
         date = subprocess.check_output(['date', '+%H:%M:%S %D %Z'])
         with open(radmind_log + 'maintenance_lastrun', 'w') as f:
             f.write(date)
+
+    # Set the volume name through HARD_DISK_NAME:
+    if volname and os.path.isdir('./private/var/radmind/client'):
+        grep = subprocess.check_output(['egrep', '-lr', '^# HARD_DISK_NAME', './private/var/radmind/client']).split('\n')
+        # Remove any blank entries (the split('\n') tends to leave one at the end).
+        files = [x for x in grep if x != '']
+        # Preserve the originals, if this has been run multiple times.
+        files = [x for x in files if not x.endswith('.imager-replaced')]
+        for file in files:
+            # Copy the file, then rewrite the line with HARD_DISK_NAME to use the
+            # new value.
+            shutil.copy2(file, file + '.imager-replaced')
+            with open(file, 'r') as source:
+                lines = source.readlines()
+            with open(file, 'w') as source:
+                for i in range(len(lines)):
+                    source.write(
+                        re.sub(
+                            r'^(# HARD_DISK_NAME =).*$',
+                            r'\1 {volume}'.format(volume=volname),
+                            lines[i]
+                        )
+                    )
+
 
     # Run some scripts:
     result = subprocess.call(['./Library/Xhooks/Modules/xhooks/bin/radmind_xhooks_conf.pl'],

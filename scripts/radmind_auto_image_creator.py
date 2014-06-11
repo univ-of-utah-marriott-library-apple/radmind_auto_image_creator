@@ -278,14 +278,16 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
 
                     # ktcheck
                     logger.info("Running ktcheck...")
+                    ktcheck_logfile = './private/var/log/radmind/imaging_ktcheck.log'
                     try:
                         automagic_imaging.scripts.radmind.run_ktcheck(
                             cert=cert,
                             rserver=rserver,
-                            logfile='./private/var/log/radmind/imaging_ktcheck.log'
+                            logfile=ktcheck_logfile
                         )
                     except:
                         logger.error(sys.exc_info()[1].message)
+                        error_log(ktcheck_logfile)
                         raise WithBreaker(i)
                     logger.info("Completed ktcheck.")
 
@@ -293,13 +295,15 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
                     # fsdiff output goes to:
                     fsdiff_out = './private/var/log/radmind/fsdiff_output.T'
                     logger.info("Running fsdiff with output to '" + os.path.abspath(fsdiff_out) + "'...")
+                    fsdiff_logfile = './private/var/log/radmind/imaging_fsdiff.log'
                     try:
                         automagic_imaging.scripts.radmind.run_fsdiff(
                             outfile=fsdiff_out,
-                            logfile='./private/var/log/radmind/imaging_fsdiff.log'
+                            logfile=fsdiff_logfile
                         )
                     except:
                         logger.error(sys.exc_info()[1].message)
+                        error_log(fsdiff_logfile)
                         raise WithBreaker(i)
                     logger.info("Completed fsdiff.")
 
@@ -313,26 +317,19 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
 
                     # lapply
                     logger.info("Running lapply with input from '" + os.path.abspath(lapply_in) + "'...")
+                    lapply_logfile = './private/var/log/radmind/imaging_lapply.log'
                     try:
                         automagic_imaging.scripts.radmind.run_lapply(
                             cert=cert,
                             rserver=rserver,
                             infile=lapply_in,
-                            logfile='./private/var/log/radmind/imaging_lapply.log'
+                            logfile=lapply_logfile
                         )
                     except:
                         logger.error(sys.exc_info()[1].message)
+                        error_log(lapply_logfile)
                         raise WithBreaker(i)
                     logger.info("Completed lapply.")
-
-                    # Xhooks post-maintenance
-                    logger.info("Beginning post-maintenance...")
-                    try:
-                        automagic_imaging.scripts.radmind.run_post_maintenance()
-                    except:
-                        logger.error(sys.exc_info()[1].message)
-                        raise WithBreaker(i)
-                    logger.info("Completed post-maintenance.")
 
                     # Get the system's OS version and build version for file naming.
                     # (This is the file used by `/usr/bin/sw_vers`)
@@ -352,17 +349,30 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
                     logger.info("Using system version: " + version)
                     build = subprocess.check_output(build_command).strip('\n')
                     logger.info("Using system build version: " + build)
+
+                    # Declare the disk label here.
+                    # This is used in post-maintenance, renaming, and blessing.
+                    disk_label = volname
+                    if options['attach_version']:
+                        # Rename the volume to include the system version.
+                        disk_label = options['original_volname'].replace('$VERSION', version)
+
+                    # Xhooks post-maintenance
+                    logger.info("Beginning post-maintenance...")
+                    try:
+                        automagic_imaging.scripts.radmind.run_post_maintenance(disk_label)
+                    except:
+                        logger.error(sys.exc_info()[1].message)
+                        raise WithBreaker(i)
+                    logger.info("Completed post-maintenance.")
             except WithBreaker as e:
                 raise WithBreaker(e.image)
 
-            # Declare the disk label for blessing here; could be modified
-            bless_label = volname
+            # Rename the volume if needed
             if options['attach_version']:
-                # Rename the volume to include the system version.
-                bless_label = options['original_volname'].replace('$VERSION', version)
-                logger.info("Renaming volume to '" + bless_label + "'...")
+                logger.info("Renaming volume to '" + disk_label + "'...")
                 try:
-                    i.rename(bless_label)
+                    i.rename(disk_label)
                 except:
                     logger.error(sys.exc_info()[1].message)
                     raise WithBreaker(i)
@@ -372,7 +382,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
             logger.info("Blessing volume...")
             try:
                 time.sleep(10)
-                i.bless(bless_label)
+                i.bless(disk_label)
             except:
                 logger.error(sys.exc_info()[1].message)
                 raise WithBreaker(i)
@@ -429,8 +439,12 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
         # This is here because you can't unmount a volume while inside it...
         logger.error("Image '" + image + "' did not complete successfully.")
         failure_unmount(e.image)
-        if not options['persist'] and os.path.isfile(e.image.path):
-            os.remove(e.image.path)
+        if not options['persist'] and os.path.isfile(e.image.path)
+            if e.image.mounted:
+                logger.error("Image file '" + e.image.path + "' was not deleted because it is still mounted!")
+            else:
+                os.remove(e.image.path)
+                logger.error("Image file '" + e.image.path + "' deleted.")
 
 def failure_unmount(image):
     '''Attempt to unmount a volume/disk multiple times after a failure.'''
@@ -458,6 +472,19 @@ def failure_unmount(image):
                 attempt -= 1
             logger.error("Failed to unmount image '" + str(image.name) +
                          "' during premature exit. Please unmount manually from " + image.disk_id + ".")
+
+def error_log(file, lines=5):
+    '''Log the last `lines` lines of `file`.'''
+    if not os.path.isfile(file):
+        logger.error("File '" + file + "' not found for logging.")
+        return
+    lines = subprocess.check_output(['tail', '-' + str(lines), file]).split('\n')
+    # Blank lines won't really help us debug much, so remove those.
+    lines = [x for x in lines if x != '']
+    logger.error("Last " + str(lines) + " lines of " + file + ":")
+    for line in lines:
+        # Indentation for easier reading.
+        logger.error('    ' + line)
 
 def set_globals():
     '''Set globally-accessible options.'''
