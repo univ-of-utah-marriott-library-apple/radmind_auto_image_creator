@@ -407,7 +407,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
             # Convert from .sparseimage to read-only .dmg
             logger.info("Converting image to read-only at '" + convert_name + "'")
             try:
-                i.convert(convert_name)
+                i.convert(format='UDZO-9', outfile=convert_name)
             except:
                 logger.error(sys.exc_info()[1].message)
                 raise WithBreaker()

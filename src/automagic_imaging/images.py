@@ -55,9 +55,9 @@ class Image:
         if self.mounted:
             clean(self.mount_point)
 
-    def convert(self, outfile=''):
+    def convert(self, format='', outfile=''):
         if not self.mounted:
-            self.path = convert(self.path, outfile=outfile)
+            self.path = convert(self.path, format=format, outfile=outfile)
 
     def scan(self):
         if not self.mounted:
@@ -95,7 +95,7 @@ def create(image, vol='Mac OS X', size='200g'):
 
     return result.strip('\n').split(': ')[1]
 
-def convert(image, format='UDRO', outfile=''):
+def convert(image, format='', outfile=''):
     '''Converts an image to another format. Default is read-only.
 
     image   - path of the image to be converted
@@ -105,9 +105,13 @@ def convert(image, format='UDRO', outfile=''):
 
     if not outfile:
         outfile = os.path.splitext(os.path.abspath(image))[0]
+    if not format:
+        format = 'UDRO'
 
     formats = ['UDRW', 'UDRO', 'UDCO', 'UDZO', 'UDBZ', 'UFBI', 'UDTO', 'UDxx',
-               'UDSP', 'UDSB', 'Rdxx', 'DC42']
+               'UDSP', 'UDSB', 'Rdxx', 'DC42',
+               'UDZO-1', 'UDZO-2', 'UDZO-3', 'UDZO-4', 'UDZO-5', 'UDZO-6',
+               'UDZO-7', 'UDZO-8', 'UDZO-9']
     if format not in formats:
         raise ValueError("Invalid format specified: '" + format + "'")
 
