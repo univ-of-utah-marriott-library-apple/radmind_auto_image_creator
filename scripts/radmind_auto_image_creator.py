@@ -174,18 +174,19 @@ def produce_image():
     '''
 
     image_producer(
-        tmp_dir = options['tmp_dir'],
-        out_dir = options['out_dir'],
-        rserver = options['rserver'],
-        cert    = options['cert'],
-        image   = options['image'],
-        volname = options['volname'],
-        persist = options['persist'],
-        sparse  = options['sparse']
+        tmp_dir      = options['tmp_dir'],
+        out_dir      = options['out_dir'],
+        rserver      = options['rserver'],
+        cert         = options['cert'],
+        image        = options['image'],
+        volname      = options['volname'],
+        persist      = options['persist'],
+        persist_fail = options['persist-fail']
+        sparse       = options['sparse']
     )
 
 def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
-                   persist=False, sparse=None):
+                   persist=False, persist_fail=False sparse=None):
     '''Creates an image and fills its filesystem from radmind.'''
     # All options must be non-empty.
     if not tmp_dir:
@@ -223,14 +224,15 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
     # Start logging for this image.
     logger.info("--------------------------------------------------------------------------------")
     logger.info("Using settings:")
-    logger.info("    tmp_dir = '" + tmp_dir + "'")
-    logger.info("    out_dir = '" + out_dir + "'")
-    logger.info("    rserver = '" + rserver + "'")
-    logger.info("    cert    = '" + cert + "'")
-    logger.info("    image   = '" + image + "'")
-    logger.info("    volname = '" + volname + "'")
-    logger.info("    persist = '" + persist + "'")
-    logger.info("    sparse  = '" + sparse + "'")
+    logger.info("    tmp_dir      = '" + tmp_dir + "'")
+    logger.info("    out_dir      = '" + out_dir + "'")
+    logger.info("    rserver      = '" + rserver + "'")
+    logger.info("    cert         = '" + cert + "'")
+    logger.info("    image        = '" + image + "'")
+    logger.info("    volname      = '" + volname + "'")
+    logger.info("    persist-all  = '" + persist + "'")
+    logger.info("    persist-fail = '" + persist_fail + "'")
+    logger.info("    sparse       = '" + sparse + "'")
     logger.info("Processing image '" + image + "'")
     # Change directory to the temporary location.
     try:
@@ -421,14 +423,15 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
                 raise WithBreaker()
             logger.info("Image converted.")
 
-            # Remove sparse image
-            logger.info("Removing original sparse image...")
-            try:
-                os.remove('./' + image + '.sparseimage')
-            except:
-                logger.error(sys.exc_info()[1].message)
-                raise WithBreaker()
-            logger.info("Image removed.")
+            # Remove sparse image if not persisting
+            if not persist:
+                logger.info("Removing original sparse image...")
+                try:
+                    os.remove('./' + image + '.sparseimage')
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    raise WithBreaker()
+                logger.info("Image removed.")
 
             # Scan image for ASR use
             logger.info("Scanning image for asr use...")
@@ -447,7 +450,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
         # This is here because you can't unmount a volume while inside it...
         logger.error("Image '" + image + "' did not complete successfully.")
         failure_unmount(e.image)
-        if not persist and os.path.isfile(e.image.path):
+        if not persist_fail and os.path.isfile(e.image.path):
             if e.image.mounted:
                 logger.error("Image file '" + e.image.path + "' was not deleted because it is still mounted!")
             else:
@@ -503,14 +506,15 @@ def set_globals():
     options['version'] = automagic_imaging.__version__
 
     # Initialize null keys
-    options['tmp_dir']          = None
-    options['out_dir']          = None
-    options['rserver']          = None
-    options['cert']             = None
-    options['image']            = None
-    options['volname']          = None
-    options['sparse']           = None
-    options['persist']          = False
+    options['tmp_dir']      = None
+    options['out_dir']      = None
+    options['rserver']      = None
+    options['cert']         = None
+    options['image']        = None
+    options['volname']      = None
+    options['sparse']       = None
+    options['persist']      = False
+    options['persist-fail'] = False
 
 
 def setup_logger():

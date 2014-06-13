@@ -31,6 +31,8 @@ Create bootable disk images from Radmind.
         only create one image per run, and will override any other information
         you provide
 
+    --persist-all     : prevent the program from deleting any sparse images;
+                        (this implies '--persist-on-fail')
     --persist-on-fail : prevent the program from deleting failed image files;
                         (this is not recommended unless you are sure of space)
 
@@ -59,6 +61,7 @@ def parse(options):
     parser.add_argument('-v', '--version', action='store_true')
     parser.add_argument('-n', '--no-log', action='store_true')
     parser.add_argument('-i', '--interactive', action='store_true')
+    parser.add_argument('--persist-all', action='store_true')
     parser.add_argument('--persist-on-fail', action='store_true')
     parser.add_argument('-l', '--log')
     parser.add_argument('-c', '--config')
@@ -76,15 +79,16 @@ def parse(options):
     if args.version:
         version(options)
 
-    options['log']         = not args.no_log
-    options['log_dest']    = args.log
-    options['config']      = args.config
-    options['interactive'] = args.interactive
-    options['persist']     = args.persist_on_fail
-    options['tmp_dir']     = args.tmp_dir
-    options['out_dir']     = args.out_dir
-    options['rserver']     = args.rserver
-    options['cert']        = args.cert
-    options['image']       = args.image_name
-    options['volname']     = args.volume_name
-    options['sparse']      = args.sparse
+    options['log']          = not args.no_log
+    options['log_dest']     = args.log
+    options['config']       = args.config
+    options['interactive']  = args.interactive
+    options['persist']      = args.persist_all
+    options['persist-fail'] = args.persist_on_fail or args.persist_all
+    options['tmp_dir']      = args.tmp_dir
+    options['out_dir']      = args.out_dir
+    options['rserver']      = args.rserver
+    options['cert']         = args.cert
+    options['image']        = args.image_name
+    options['volname']      = args.volume_name
+    options['sparse']       = args.sparse
