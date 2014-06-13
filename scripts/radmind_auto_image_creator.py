@@ -62,34 +62,28 @@ def interactive():
                             value  = defaults['tmp_dir'],
                             dir    = True
     )
-    logger.info("  tmp_dir = '" + options['tmp_dir'] + "'")
     options['out_dir'] = get_input(
                             prompt = "Output directory",
                             value  = defaults['out_dir'],
                             dir    = True
     )
-    logger.info("  out_dir = '" + options['out_dir'] + "'")
     options['rserver'] = get_input(
                             prompt = "Radmind server address",
                             value  = defaults['rserver']
     )
-    logger.info("  rserver = '" + options['rserver'] + "'")
     options['cert'] = get_input(
                             prompt = "Path to certificate (.pem)",
                             value  = None if not defaults['cert'] else defaults['cert'],
                             file   = True
     )
-    logger.info("  cert    = '" + options['cert'] + "'")
     options['image'] = get_input(
                             prompt = "Image name",
                             value  = None if not defaults['image'] else defaults['image']
     )
-    logger.info("  image   = '" + options['image'] + "'")
     options['volname'] = get_input(
                             prompt = "Name of bootable volume",
                             value  = None if not defaults['image'] else defaults['image']
     )
-    logger.info("  volname = '" + options['volname'] + "'")
 
     # Do the stuff here.
     produce_image()
@@ -178,23 +172,20 @@ def produce_image():
     saves time and typing, since all of the values are generally stored here
     anyway.
     '''
-    if options['volname'].find('$VERSION') >= 0:
-        options['attach_version'] = True
-        options['original_volname'] = options['volname']
-        options['volname'] = options['volname'].replace('$VERSION', '')
-        options['volname'] = options['volname'].replace('  ', ' ')
 
     image_producer(
-        tmp_dir        = options['tmp_dir'],
-        out_dir        = options['out_dir'],
-        rserver        = options['rserver'],
-        cert           = options['cert'],
-        image          = options['image'],
-        volname        = options['volname'],
-        attach_version = options['attach_version']
+        tmp_dir = options['tmp_dir'],
+        out_dir = options['out_dir'],
+        rserver = options['rserver'],
+        cert    = options['cert'],
+        image   = options['image'],
+        volname = options['volname'],
+        persist = options['persist'],
+        sparse  = options['sparse']
     )
 
-def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_version=False):
+def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
+                   persist=False, sparse=None):
     '''Creates an image and fills its filesystem from radmind.'''
     # All options must be non-empty.
     if not tmp_dir:
@@ -231,18 +222,37 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
 
     # Start logging for this image.
     logger.info("--------------------------------------------------------------------------------")
+    logger.info("Using settings:")
+    logger.info("    tmp_dir = '" + tmp_dir + "'")
+    logger.info("    out_dir = '" + out_dir + "'")
+    logger.info("    rserver = '" + rserver + "'")
+    logger.info("    cert    = '" + cert + "'")
+    logger.info("    image   = '" + image + "'")
+    logger.info("    volname = '" + volname + "'")
+    logger.info("    persist = '" + persist + "'")
+    logger.info("    sparse  = '" + sparse + "'")
     logger.info("Processing image '" + image + "'")
     # Change directory to the temporary location.
     try:
         with ChDir(tmp_dir):
-            # Create the blank sparse image
-            logger.info("Creating image named '" + image + "'...")
-            try:
-                i = automagic_imaging.images.Image(make=True, name=image, volume=volname)
-            except:
-                logger.error(sys.exc_info()[1].message)
-                raise WithBreaker()
-            logger.info("Created image '" + i.path + "'")
+            i = None
+            if sparse:
+                # The sparse image already exists; use that instead
+                logger.info("Attempting to use image '" + sparse + "'...")
+                try:
+                    i = automagic_imaging.images.Image(path=sparse)
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    logger.error("Creating blank sparse image instead.")
+            if not i:
+                # If no image is being used already, create a blank sparse image
+                logger.info("Creating image named '" + image + "'...")
+                try:
+                    i = automagic_imaging.images.Image(make=True, name=image, volume=volname)
+                except:
+                    logger.error(sys.exc_info()[1].message)
+                    raise WithBreaker()
+                logger.info("Created image '" + i.path + "'")
 
             # Mount sparse image to write to
             logger.info("Mounting image...")
@@ -350,12 +360,10 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
                     build = subprocess.check_output(build_command).strip('\n')
                     logger.info("Using system build version: " + build)
 
-                    # Declare the disk label here.
+                    # Declare the disk label here. '$VERSION' is replaced with
+                    # the OS version number and '$BUILD' with the build number.
                     # This is used in post-maintenance, renaming, and blessing.
-                    disk_label = volname
-                    if options['attach_version']:
-                        # Rename the volume to include the system version.
-                        disk_label = options['original_volname'].replace('$VERSION', version)
+                    disk_label = volname.replace('$VERSION', version).replace('$BUILD', build)
 
                     # Xhooks post-maintenance
                     logger.info("Beginning post-maintenance...")
@@ -369,7 +377,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
                 raise WithBreaker(e.image)
 
             # Rename the volume if needed
-            if options['attach_version']:
+            if i.name != disk_label:
                 logger.info("Renaming volume to '" + disk_label + "'...")
                 try:
                     i.rename(disk_label)
@@ -439,7 +447,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname, attach_versi
         # This is here because you can't unmount a volume while inside it...
         logger.error("Image '" + image + "' did not complete successfully.")
         failure_unmount(e.image)
-        if not options['persist'] and os.path.isfile(e.image.path):
+        if not persist and os.path.isfile(e.image.path):
             if e.image.mounted:
                 logger.error("Image file '" + e.image.path + "' was not deleted because it is still mounted!")
             else:
@@ -501,8 +509,8 @@ def set_globals():
     options['cert']             = None
     options['image']            = None
     options['volname']          = None
-    options['attach_version']   = False
-    options['original_volname'] = None
+    options['sparse']           = None
+    options['persist']          = False
 
 
 def setup_logger():

@@ -7,12 +7,15 @@ def version(options):
 
     print "{name}, version {version}\n".format(name=options['long_name'],
                                                version=options['version'])
+    sys.exit(0)
 
 def usage(options):
     '''Gives useful usage information.
     '''
-
-    version(options)
+    try:
+        version(options)
+    except SystemExit:
+        pass
 
     print '''\
 usage: {} [-hvni] [-l log] [-c config] [-t tmp_dir] [-o out_dir]
@@ -40,7 +43,10 @@ Create bootable disk images from Radmind.
     I image   : use 'image' as the name of the image to be created (for Manual
                 or Interactive modes)
     V volume  : use 'volume' as the name of the bootable volume for the image
-                (for Manual or Interactive modes)\
+                (for Manual or Interactive modes)
+    s sparse  : use 'sparse' as the initial sparse image to start from; this
+                prevents the program from creating a new sparse image and
+                starting from scratch\
 '''.format(options['name'])
     sys.exit(0)
 
@@ -62,21 +68,23 @@ def parse(options):
     parser.add_argument('-C', '--cert')
     parser.add_argument('-I', '--image-name')
     parser.add_argument('-V', '--volume-name')
+    parser.add_argument('-s', '--sparse')
     args = parser.parse_args()
 
     if args.help:
         usage(options)
     if args.version:
         version(options)
-        sys.exit(0)
-    options['log'] = not args.no_log
-    options['log_dest'] = args.log
-    options['config'] = args.config
+
+    options['log']         = not args.no_log
+    options['log_dest']    = args.log
+    options['config']      = args.config
     options['interactive'] = args.interactive
-    options['persist'] = args.persist_on_fail
-    options['tmp_dir'] = args.tmp_dir
-    options['out_dir'] = args.out_dir
-    options['rserver'] = args.rserver
-    options['cert'] = args.cert
-    options['image'] = args.image_name
-    options['volname'] = args.volume_name
+    options['persist']     = args.persist_on_fail
+    options['tmp_dir']     = args.tmp_dir
+    options['out_dir']     = args.out_dir
+    options['rserver']     = args.rserver
+    options['cert']        = args.cert
+    options['image']       = args.image_name
+    options['volname']     = args.volume_name
+    options['sparse']      = args.sparse
