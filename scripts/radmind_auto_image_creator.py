@@ -3,6 +3,7 @@
 import automagic_imaging
 import datetime
 import os
+import resource
 import subprocess
 import sys
 import time
@@ -21,22 +22,14 @@ def main():
     logger.info("********************************************************************************")
     logger.info(options['long_name'] + " v. " + options['version'])
     logger.info("Run as: `" + ' '.join(args) + "`")
-    logger.info("BEGIN IMAGING")
-    descriptors = 0
     try:
-        descriptors = int(subprocess.check_output(['ulimit', '-n']).split('\n'))
+        descriptors = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
         if descriptors < 2048:
-            result = subprocess.call(['ulimit', '-n', '2048'],
-                                     stderr=subprocess.STDOUT,
-                                     stdout=STDOUT)
-            if result == 0:
-                logger.info("Set maximum file descriptors from " + str(descriptors) + " to 2048.")
-            else:
-                raise
-        else:
-            logger.info("Maximum file descriptors is already " + str(descriptors) + ".")
+            resource.setrlimit(resource.RLIMIT_NOFILE, (2048, -1))
+            logger.info("Set maximum file descriptors from " + str(descriptors) + " to 2048.")
     except:
-        logger.error("Could not adjust descriptors limit. Continuing anyway...")
+        logger.error("Could not adjust descriptors limit. Continuing anyway, though errors may occur...")
+    logger.info("BEGIN IMAGING")
 
     if options['interactive']:
         # Prompts the user for each item.
@@ -54,18 +47,6 @@ def main():
         interactive()
 
     logger.info("--------------------------------------------------------------------------------")
-    if descriptors:
-        try:
-            result = subprocess.call(['ulimit', '-n', str(descriptors)],
-                                     stderr=subprocess.STDOUT,
-                                     stdout=STDOUT)
-            if result == 0:
-                logger.info("Set maximum file descriptors to " + str(descriptors) + ".")
-            else:
-                raise
-        except:
-            logger.error("Could not restore original descriptors limit.")
-
     logger.info("FINISHED IMAGING: (" + str(options['success_count']) + "/" + str(options['total_count']) + ")")
 
 def interactive():
