@@ -21,7 +21,22 @@ def main():
     logger.info("********************************************************************************")
     logger.info(options['long_name'] + " v. " + options['version'])
     logger.info("Run as: `" + ' '.join(args) + "`")
-    logger.info("STARTING IMAGING")
+    logger.info("BEGIN IMAGING")
+    descriptors = 0
+    try:
+        descriptors = int(subprocess.check_output(['ulimit', '-n']).split('\n'))
+        if descriptors < 2048:
+            result = subprocess.call(['ulimit', '-n', '2048'],
+                                     stderr=subprocess.STDOUT,
+                                     stdout=STDOUT)
+            if result == 0:
+                logger.info("Set maximum file descriptors from " + str(descriptors) + " to 2048.")
+            else:
+                raise
+        else:
+            logger.info("Maximum file descriptors is already " + str(descriptors) + ".")
+    except:
+        logger.error("Could not adjust descriptors limit. Continuing anyway...")
 
     if options['interactive']:
         # Prompts the user for each item.
@@ -39,7 +54,19 @@ def main():
         interactive()
 
     logger.info("--------------------------------------------------------------------------------")
-    logger.info("FINISHED IMAGING")
+    if descriptors:
+        try:
+            result = subprocess.call(['ulimit', '-n', str(descriptors)],
+                                     stderr=subprocess.STDOUT,
+                                     stdout=STDOUT)
+            if result == 0:
+                logger.info("Set maximum file descriptors to " + str(descriptors) + ".")
+            else:
+                raise
+        except:
+            logger.error("Could not restore original descriptors limit.")
+
+    logger.info("FINISHED IMAGING: (" + str(options['success_count']) + "/" + str(options['total_count']) + ")")
 
 def interactive():
     '''An interactive, prompting method of getting values from the user.'''
@@ -160,12 +187,18 @@ def with_config():
     options['out_dir'] = config.globals['out_dir'] if not options['out_dir'] else options['out_dir']
     options['rserver'] = config.globals['rserver'] if not options['rserver'] else options['rserver']
 
-    for image in config.images:
-        options['cert']    = config.images[image]['cert']
-        options['image']   = image
-        options['volname'] = config.images[image]['volume']
+    if options['image'] and options['image'] in config.images:
+        options['cert']    = config.images[options['image']]['cert']
+        options['volname'] = config.images[options['image']]['volume']
 
         produce_image()
+    else:
+        for image in config.images:
+            options['cert']    = config.images[image]['cert']
+            options['image']   = image
+            options['volname'] = config.images[image]['volume']
+
+            produce_image()
 
 def produce_image():
     '''Makes a call to 'image_producer' using the values in 'options'. This
@@ -181,13 +214,14 @@ def produce_image():
         image        = options['image'],
         volname      = options['volname'],
         persist      = options['persist'],
-        persist_fail = options['persist-fail']
+        persist_fail = options['persist-fail'],
         sparse       = options['sparse']
     )
 
 def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
-                   persist=False, persist_fail=False sparse=None):
+                   persist=False, persist_fail=False, sparse=None):
     '''Creates an image and fills its filesystem from radmind.'''
+    options['total_count'] += 1
     # All options must be non-empty.
     if not tmp_dir:
         raise ValueError("No temporary directory given.")
@@ -230,9 +264,9 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
     logger.info("    cert         = '" + cert + "'")
     logger.info("    image        = '" + image + "'")
     logger.info("    volname      = '" + volname + "'")
-    logger.info("    persist-all  = '" + persist + "'")
-    logger.info("    persist-fail = '" + persist_fail + "'")
-    logger.info("    sparse       = '" + sparse + "'")
+    logger.info("    persist-all  = '" + str(persist) + "'")
+    logger.info("    persist-fail = '" + str(persist_fail) + "'")
+    logger.info("    sparse       = '" + str(sparse) + "'")
     logger.info("Processing image '" + image + "'")
     # Change directory to the temporary location.
     try:
@@ -444,6 +478,7 @@ def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
 
             # Done
             logger.info("Successfully finished '" + image + "'.")
+            options['success_count'] += 1
     except WithBreaker as e:
         # Outside of the with, need to check if there's still an issue.
         # If there was a problem previously, unmount the previous image.
@@ -492,7 +527,7 @@ def error_log(file, lines=5):
     lines = subprocess.check_output(['tail', '-' + str(lines), file]).split('\n')
     # Blank lines won't really help us debug much, so remove those.
     lines = [x for x in lines if x != '']
-    logger.error("Last " + str(lines) + " lines of " + file + ":")
+    logger.error("Last " + str(len(lines)) + " lines of " + file + ":")
     for line in lines:
         # Indentation for easier reading.
         logger.error('    ' + line)
@@ -506,15 +541,17 @@ def set_globals():
     options['version'] = automagic_imaging.__version__
 
     # Initialize null keys
-    options['tmp_dir']      = None
-    options['out_dir']      = None
-    options['rserver']      = None
-    options['cert']         = None
-    options['image']        = None
-    options['volname']      = None
-    options['sparse']       = None
-    options['persist']      = False
-    options['persist-fail'] = False
+    options['tmp_dir']       = None
+    options['out_dir']       = None
+    options['rserver']       = None
+    options['cert']          = None
+    options['image']         = None
+    options['volname']       = None
+    options['sparse']        = None
+    options['persist']       = False
+    options['persist-fail']  = False
+    options['total_count']   = 0
+    options['success_count'] = 0
 
 
 def setup_logger():

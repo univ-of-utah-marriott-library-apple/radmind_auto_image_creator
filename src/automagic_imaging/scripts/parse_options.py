@@ -44,6 +44,7 @@ Create bootable disk images from Radmind.
     C cert    : use 'cert' as the certificate (for Manual or Interactive modes)
     I image   : use 'image' as the name of the image to be created (for Manual
                 or Interactive modes)
+                use only the 'image' image from the config file (Config mode)
     V volume  : use 'volume' as the name of the bootable volume for the image
                 (for Manual or Interactive modes)
     s sparse  : use 'sparse' as the initial sparse image to start from; this
