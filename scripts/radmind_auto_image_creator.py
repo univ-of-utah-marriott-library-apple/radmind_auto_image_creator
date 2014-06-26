@@ -162,7 +162,11 @@ def with_config():
     override something in the file temporarily).
     '''
     logger.info("Using config file '" + os.path.abspath(options['config']) + "'")
-    config = automagic_imaging.configurator.Configurator(options['config'])
+    try:
+        config = automagic_imaging.configurator.Configurator(options['config'])
+    except:
+        logger.error(sys.exc_info()[1].message)
+        return
 
     options['tmp_dir'] = config.globals['tmp_dir'] if not options['tmp_dir'] else options['tmp_dir']
     options['out_dir'] = config.globals['out_dir'] if not options['out_dir'] else options['out_dir']
@@ -172,14 +176,20 @@ def with_config():
         options['cert']    = config.images[options['image']]['cert']
         options['volname'] = config.images[options['image']]['volume']
 
-        produce_image()
+        try:
+            produce_image()
+        except:
+            return
     else:
         for image in config.images:
             options['cert']    = config.images[image]['cert']
             options['image']   = image
             options['volname'] = config.images[image]['volume']
 
-            produce_image()
+            try:
+                produce_image()
+            except:
+                return
 
 def produce_image():
     '''Makes a call to 'image_producer' using the values in 'options'. This
@@ -187,17 +197,21 @@ def produce_image():
     anyway.
     '''
 
-    image_producer(
-        tmp_dir      = options['tmp_dir'],
-        out_dir      = options['out_dir'],
-        rserver      = options['rserver'],
-        cert         = options['cert'],
-        image        = options['image'],
-        volname      = options['volname'],
-        persist      = options['persist'],
-        persist_fail = options['persist-fail'],
-        sparse       = options['sparse']
-    )
+    try:
+        image_producer(
+            tmp_dir      = options['tmp_dir'],
+            out_dir      = options['out_dir'],
+            rserver      = options['rserver'],
+            cert         = options['cert'],
+            image        = options['image'],
+            volname      = options['volname'],
+            persist      = options['persist'],
+            persist_fail = options['persist-fail'],
+            sparse       = options['sparse']
+        )
+    except:
+        logger.error(sys.exc_info()[1].message)
+        raise Exception
 
 def image_producer(tmp_dir, out_dir, rserver, cert, image, volname,
                    persist=False, persist_fail=False, sparse=None):
