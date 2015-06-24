@@ -17,6 +17,10 @@ Automagically create images for OS X computers using Radmind.
   * [Image](#image)
 * [Update History](#update-history)
 
+## Download
+
+[Download the latest installer here!](../../releases/)
+
 ## Requirements
 
 * Python 2.7.x (which you can download [here](https://www.python.org/download/))
@@ -26,6 +30,10 @@ Note: This project has not seen any significant updates in some time, and so doe
 ## Contact
 
 If you have any comments, questions, or other input, either [file an issue](../../issues) or [send us an email](mailto:mlib-its-mac-github@lists.utah.edu). Thanks!
+
+## Uninstall
+
+To remove the Ramind Automatic Image Creator from your system, download the .dmg and run the "Uninstall Automagic Imaging [x.x.x]" package to uninstall it. (Note that the version indicated does not actually matter, as any of the uninstall packages will remove any installed version of the Radmind Automatic Image Creator).
 
 ## Purpose
 
