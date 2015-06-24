@@ -11,10 +11,17 @@ Automagically create images for OS X computers using Radmind.
 * [Usage](#usage)
   * [Options](#options)
 * [Technical](#technical)
+  * [Sparse Images](#sparse-images)
+* [Config](#config)
+  * [Global](#global)
+  * [Image](#image)
+* [Update History](#update-history)
 
 ## Requirements
 
 * Python 2.7.x (which you can download [here](https://www.python.org/download/))
+
+Note: This project has not seen any significant updates in some time, and so does not use our common [Management Tools](https://github.com/univ-of-utah-marriott-library-apple/management_tools) package. There are currently no plans to integrate Management Tools into the Radmind Automatic Image Creator.
 
 ## Contact
 
